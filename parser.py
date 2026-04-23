@@ -1,7 +1,7 @@
 import requests
 import re
 
-# Список ваших источников
+# Список источников
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -17,26 +17,26 @@ def parse():
             print(f"Загрузка из: {url}")
             response = requests.get(url, timeout=15)
             if response.status_code == 200:
-                # Извлекаем строки, похожие на конфиги (vless, vmess, ss, trojan и т.д.)
                 content = response.text
+                # Ищем все протоколы: vless, vmess, ss, trojan, tuic, hysteria
                 configs = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
                 
                 for cfg in configs:
-                    # Убираем возможный мусор в конце строки
-                    clean_cfg = cfg.strip().replace('\r', '')
+                    # Очистка строки от мусора
+                    clean_cfg = cfg.strip().replace('\r', '').replace('`', '').replace('"', '')
                     unique_configs.add(clean_cfg)
             else:
                 print(f"Ошибка {response.status_code} для {url}")
         except Exception as e:
-            print(f"Ошибка: {e}")
+            print(f"Ошибка при обработке {url}: {e}")
 
-    # Сохраняем результат
+    # Запись в файл (режим 'w' полностью стирает старое содержимое)
     if unique_configs:
         with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write("\n".join(sorted(list(unique_configs))))
-        print(f"Успешно! Собрано уникальных конфигов: {len(unique_configs)}")
+        print(f"Готово! Собрано свежих конфигов: {len(unique_configs)}")
     else:
-        print("Конфиги не найдены.")
+        print("Новых конфигов не найдено. Файл не будет обновлен.")
 
 if __name__ == "__main__":
     parse()

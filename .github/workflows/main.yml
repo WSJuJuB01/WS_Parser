@@ -2,7 +2,7 @@ name: Auto Parser
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Запуск каждые 4 часа
+    - cron: '0 */1 * * *' # Запуск каждые час
   workflow_dispatch:      # Кнопка ручного запуска
 
 jobs:

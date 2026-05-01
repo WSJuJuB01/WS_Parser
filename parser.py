@@ -1,7 +1,7 @@
 import requests
 import re
 
-# Список источников
+# Список источников (в точности как в твоем сообщении)
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -31,11 +31,19 @@ def parse():
         except Exception as e:
             print(f"Ошибка при обработке {url}: {e}")
 
-    # Запись в файл (режим 'w' полностью стирает старое содержимое)
+    # Запись в файл
     if unique_configs:
+        # Сортировка: (0 если vless, иначе 1), затем по алфавиту
+        # Это выводит vless:// на самый верх
+        sorted_configs = sorted(
+            list(unique_configs), 
+            key=lambda x: (0 if x.startswith('vless://') else 1, x)
+        )
+        
         with open("subscription.txt", "w", encoding="utf-8") as f:
-            f.write("\n".join(sorted(list(unique_configs))))
+            f.write("\n".join(sorted_configs))
         print(f"Готово! Собрано свежих конфигов: {len(unique_configs)}")
+        print("VLESS конфиги теперь в начале файла.")
     else:
         print("Новых конфигов не найдено. Файл не будет обновлен.")
 

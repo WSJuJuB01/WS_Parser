@@ -12,7 +12,7 @@ SOURCES = [
 ]
 
 def get_flag_emoji(text):
-    # Регулярка для поиска любых флагов-эмодзи
+    # Находим все флаги-эмодзи в тексте и возвращаем первый найденный
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', text)
     return flags[0] if flags else None
 
@@ -25,10 +25,11 @@ def parse():
             response = requests.get(url, timeout=15)
             if response.status_code == 200:
                 content = response.text
-                # Поиск протоколов
+                # Поиск всех поддерживаемых протоколов
                 configs = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
                 
                 for cfg in configs:
+                    # Базовая очистка строки
                     clean_cfg = cfg.strip().replace('\r', '').replace('`', '').replace('"', '')
                     unique_configs.add(clean_cfg)
             else:
@@ -37,7 +38,7 @@ def parse():
             print(f"Ошибка при обработке {url}: {e}")
 
     if unique_configs:
-        # 1. Сортировка: VLESS (0), остальные (1)
+        # 1. Сортировка: VLESS (приоритет 0) всегда идет первым в списке
         sorted_raw = sorted(
             list(unique_configs), 
             key=lambda x: (0 if x.startswith('vless://') else 1, x)
@@ -45,35 +46,38 @@ def parse():
         
         final_configs = []
         for i, cfg in enumerate(sorted_raw, 1):
-            # Разделяем саму ссылку и название (после #)
+            # Разделяем саму ссылку и название (всё, что после знака #)
             parts = cfg.split('#', 1)
             base_link = parts[0]
+            # Декодируем имя (убираем %20 и прочие символы)
             old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
             
-            # 2. Определяем красивое название
+            # 2. Формируем новое красивое название
             flag = get_flag_emoji(old_name)
             
             if "anycast" in old_name.lower():
                 new_name = "🌐 Anycast"
             elif flag:
-                # Убираем флаг из старого имени, чтобы не дублировался, и чистим мусор
+                # Убираем найденный флаг из старого имени, чтобы он не дублировался
                 clean_old_name = old_name.replace(flag, '').strip()
-                # Если кроме флага ничего не было, пишем Proxy
-                new_name = f"{flag} {clean_old_name if clean_old_name else 'Proxy'}"
+                # Убираем технический мусор (палки, подчеркивания), если они остались
+                clean_old_name = re.sub(r'[|_-]', '', clean_old_name).strip()
+                new_name = f"{flag} {clean_old_name if clean_old_name else 'Server'}"
             else:
+                # Если флага и Anycast нет — ставим порядковый номер
                 new_name = f"Обход {i}"
             
-            # Собираем строку с твоей подписью
+            # 3. Собираем итоговую строку: Ссылка + Новое имя + Твоя подпись
             final_configs.append(f"{base_link}#{new_name} | Ваш котенок ❤")
 
-        # Запись в файл
+        # Записываем результат в файл
         with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write("\n".join(final_configs))
             
-        print(f"Готово! Собрано и переименовано: {len(final_configs)}")
-        print("VLESS в начале, флаги найдены, подпись добавлена. 🐈‍⬛")
+        print(f"Готово! Собрано: {len(final_configs)}")
+        print("VLESS сверху, флаги на месте, котенок доволен. 🐈‍⬛")
     else:
-        print("Новых конфигов не найдено. Файл не будет обновлен.")
+        print("Новых конфигов не найдено.")
 
 if __name__ == "__main__":
     parse()

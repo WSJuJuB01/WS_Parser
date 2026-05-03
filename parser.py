@@ -1,6 +1,6 @@
 import requests, re, urllib.parse, base64
 
-# ТВОИ АКТУАЛЬНЫЕ ИСТОЧНИКИ
+# ТВОИ SOURCES — ВСЕГДА ТУТ 💖
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -10,40 +10,46 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-# Карта для распознавания стран через дешифратор
-COUNTRY_MAP = {
-    "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
-    "usa": "🇺🇸 USA", "unitedstates": "🇺🇸 USA", "ukraine": "🇺🇦 Ukraine", 
-    "finland": "🇫🇮 Finland", "poland": "🇵🇱 Poland", "turkey": "🇹🇷 Turkey", 
-    "france": "🇫🇷 France", "kazakhstan": "🇰🇿 Kazakhstan"
+# Карта частых стран для красивых названий
+COUNTRY_DATA = {
+    "Russia": "🇷🇺 Russia", "Germany": "🇩🇪 Germany", "Netherlands": "🇳🇱 Netherlands",
+    "USA": "🇺🇸 USA", "United States": "🇺🇸 USA", "United Kingdom": "🇬🇧 UK",
+    "Czechia": "🇨🇿 Czechia", "Finland": "🇫🇮 Finland", "Poland": "🇵🇱 Poland",
+    "Turkey": "🇹🇷 Turkey", "France": "🇫🇷 France", "Kazakhstan": "🇰🇿 Kazakhstan",
+    "Sweden": "🇸🇪 Sweden", "Ukraine": "🇺🇦 Ukraine", "Austria": "🇦🇹 Austria",
+    "Canada": "🇨🇦 Canada", "Hong Kong": "🇭🇰 Hong Kong", "Japan": "🇯🇵 Japan",
+    "Singapore": "🇸🇬 Singapore", "Italy": "🇮🇹 Italy", "Spain": "🇪🇸 Spain"
 }
 
-def universal_decode(text):
-    """Дешифрует греческие символы в обычную латиницу"""
-    table = {
-        'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'a', 'ζ': 'z', 'η': 'n', 'θ': 'h',
-        'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
-        'ρ': 'r', 'σ': 's', 'τ': 't', 'υ': 'u', 'φ': 'f', 'χ': 'x', 'ψ': 'u', 'ω': 'w',
-        '†': 'i', '‡': 's', '·': '', ' ': ''
-    }
-    decoded = "".join(table.get(c, c) for c in text.lower())
-    return re.sub(r'[^a-z]', '', decoded)
-
-def get_name(old_name):
-    # 1. ПРИОРИТЕТ: Ищем уже готовый эмодзи-флаг (вернет строку, а не список)
+def get_clean_name(old_name):
+    # 1. ПРИОРИТЕТ: Если уже есть эмодзи-флаг
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags:
-        return flags[0]
+    if flags: return flags[0]
+
+    # 2. Ищем по нашему списку COUNTRY_DATA
+    for english_name, formatted in COUNTRY_DATA.items():
+        if english_name.lower() in old_name.lower():
+            return formatted
     
-    # 2. Если флага нет, дешифруем абракадабру (для EtoNeYa)
-    clean = universal_decode(old_name)
-    for key, val in COUNTRY_MAP.items():
-        if key in clean: return val
+    # 3. МАГИЯ ДЛЯ РЕДКИХ СТРАН: Ищем текстовые коды (типа RU, LU, US)
+    # и превращаем их в эмодзи-флаги
+    clean_text = re.sub(r'[^a-zA-Z\s]', ' ', old_name).strip().split()
+    for word in clean_text:
+        if len(word) == 2 and word.isupper():
+            # Превращаем буквы в эмодзи-флаг
+            flag = "".join(chr(ord(c) + 127397) for c in word)
+            return f"{flag} {word}"
+            
+    # 4. Если нашли просто латиницу (название страны без кода)
+    clean_final = re.sub(r'[^a-zA-Z\s]', '', old_name).strip()
+    if len(clean_final) > 2:
+        return f"🌍 {clean_final.capitalize()}"
+    
     return None
 
 def parse():
     unique_cfgs = {}
-    print("🐾 Собираю конфиги из 6 источников...")
+    print("🐾 Начинаю сборку подписки...")
     
     for url in SOURCES:
         try:
@@ -56,30 +62,29 @@ def parse():
         except: pass
 
     if unique_cfgs:
-        # ИСПРАВЛЕННАЯ СОРТИРОВКА: x[0] - это сама ссылка
-        sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
+        # Сортировка: VLESS в начало
+        items = sorted(unique_cfgs.items(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
         
         final_list = []
         counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
 
-        for cfg, src in sorted_items:
+        for cfg, src in items:
             parts = cfg.split('#', 1)
             base = parts[0]
             old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
 
-            # Определяем автора
             if "etoneya" in src: auth = "EtoNeYa"
             elif "igareck" in src: auth = "igareck"
             elif "RKP" in src: auth = "RKP"
             elif "Ilyacom4ik" in src: auth = "FCH"
             else: auth = "Other"
 
-            # Получаем красивое имя
-            country = get_name(old_name)
+            display_name = get_clean_name(old_name)
+            
             if "anycast" in old_name.lower(): 
                 name = "🌐 Anycast"
-            elif country:
-                name = country
+            elif display_name:
+                name = display_name
             else:
                 name = f"Обход {counts.get(auth, 1)}"
                 counts[auth] = counts.get(auth, 1) + 1
@@ -90,9 +95,7 @@ def parse():
         with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
         with open("subscription_b64.txt", "w", encoding="utf-8") as f:
             f.write(base64.b64encode(res_text.encode()).decode())
-        print(f"✅ Успех! Собрано: {len(final_list)}")
-    else:
-        print("😿 Ничего не нашли.")
+        print(f"✅ Готово! Собрано: {len(final_list)}")
 
 if __name__ == "__main__":
     parse()

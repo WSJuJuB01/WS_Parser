@@ -10,29 +10,43 @@ SOURCES = [
     "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
     "https://etoneya.vercel.app/whitelist"
 ]
+# Реальный Белый Список РФ 🇷🇺
+WHITE_SNI = [
+    "gosuslugi.ru", "gu-st.ru", "vk.com", "vkvideo.ru", "ok.ru", "mail.ru", 
+    "max.ru", "yandex.ru", "ya.ru", "dzen.ru", "ozon.ru", "wildberries.ru", 
+    "avito.ru", "vtb.ru", "alfa-bank.ru", "sberbank.ru", "nspk.ru", "mir.ru",
+    "kinopoisk.ru", "mos.ru", "tinkoff.ru", "moex.com", "mvideo.ru"
+]
 
-# База стран (для всех, кроме EtoNeYa и RKP) 🌍
-COUNTRY_MAP = {
-    "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
-    "usa": "🇺🇸 USA", "united states": "🇺🇸 USA", "uk": "🇬🇧 UK", "finland": "🇫🇮 Finland",
-    "poland": "🇵🇱 Poland", "turkey": "🇹🇷 Turkey", "france": "🇫🇷 France", 
-    "kazakhstan": "🇰🇿 Kazakhstan", "ukraine": "🇺🇦 Ukraine", "sweden": "🇸🇪 Sweden", 
-    "austria": "🇦🇹 Austria", "singapore": "🇸🇬 Singapore", "japan": "🇯🇵 Japan"
-}
-
-def get_author(url):
-    if "etoneya" in url: return "EtoNeYa"
-    if "igareck" in url: return "igareck"
-    if "RKP" in url: return "RKP"
-    if "Ilyacom4ik" in url: return "FCH"
-    return "Other"
-
-def get_pretty_country(old_name):
-    low_name = old_name.lower()
-    for key, formatted in COUNTRY_MAP.items():
-        if key in low_name: return formatted
+def get_pretty_country(old_name, full_link):
+    # 1. Сначала ищем живой эмодзи-флаг (для Игоря)
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    return "".join(flags) if flags else "🌐 Unknown"
+    country_part = "".join(flags) if flags else ""
+
+    # 2. Если флага нет, ищем текст (Эстония, Латвия и т.д.)
+    if not country_part:
+        n_low = old_name.lower()
+        if any(x in n_low for x in ["russia", " rus", " ru"]): country_part = "🇷🇺"
+        elif "estonia" in n_low or " ee" in n_low: country_part = "🇪🇪"
+        elif "latvia" in n_low or " lv" in n_low: country_part = "🇱🇻"
+        elif "germany" in n_low or " de" in n_low: country_part = "🇩🇪"
+        elif "netherlands" in n_low or " nl" in n_low: country_part = "🇳🇱"
+        elif "usa" in n_low or " us" in n_low: country_part = "🇺🇸"
+        elif "finland" in n_low or " fi" in n_low: country_part = "🇫🇮"
+
+    # 3. Проверка на Белый Список (SNI)
+    is_white = False
+    check_text = (old_name + full_link).lower()
+    for sni in WHITE_SNI:
+        if sni in check_text:
+            is_white = True
+            break
+
+    # Итоговая сборка
+    if country_part:
+        return f"{country_part} 🏳" if is_white else country_part
+    
+    return "🌐 Unknown"
 
 def fetch(url):
     try:
@@ -48,57 +62,52 @@ def run():
 
     for content, url in results:
         if not content: continue
-        author = get_author(url)
-        found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
+        author = "EtoNeYa" if "etoneya" in url else \
+                 "igareck" if "igareck" in url else \
+                 "RKP" if "RKP" in url else \
+                 "FCH" if "Ilyacom4ik" in url else "Other"
         
+        found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
         for cfg in found:
             cfg = cfg.strip().replace('`', '').replace('"', '').replace('\r', '')
-            if '#' in cfg:
-                link, old_name = cfg.rsplit('#', 1)
-                name_decoded = urllib.parse.unquote(old_name)
-            else:
-                link, name_decoded = cfg, ""
-            buckets[author].append({"link": link, "old_name": name_decoded})
+            link, old_name = cfg.rsplit('#', 1) if '#' in cfg else (cfg, "")
+            buckets[author].append({"link": link, "old_name": urllib.parse.unquote(old_name)})
 
     final_list = []
-    rkp_counter = 1
-    etoneya_counter = 1
-    
+    counters = {"RKP": 1, "EtoNeYa": 1}
     authors_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
     
+    # Перемешивание слоями по 10 штук
     while any(buckets.values()):
         for author in authors_order:
             chunk = buckets[author][:10]
             buckets[author] = buckets[author][10:]
             
             for item in chunk:
-                # СПЕЦ-ЛОГИКА ДЛЯ АВТОРОВ
                 if author == "EtoNeYa":
-                    # Тот самый кастомный формат 🏳
-                    name = f"🏳 White lists {etoneya_counter}"
-                    etoneya_counter += 1
+                    name = f"🏳 White lists {counters['EtoNeYa']}"
+                    counters["EtoNeYa"] += 1
                 elif author == "RKP":
-                    name = f"🛡 RKP #{rkp_counter}"
-                    rkp_counter += 1
+                    name = f"🛡 RKP #{counters['RKP']}"
+                    counters["RKP"] += 1
                 else:
-                    # Для остальных — страны и флаги
-                    name = get_pretty_country(item["old_name"])
+                    # Логика флагов + белых SNI
+                    name = get_pretty_country(item["old_name"], item["link"])
 
-                # Собираем строку (у EtoNeYa подпись "котик", у остальных "котенок")
-                cat_tag = "котик" if author == "EtoNeYa" else "котенок"
-                final_list.append(f"{item['link']}#{name} | {author} | Ваш {cat_tag} ❤")
+                cat = "котик" if author == "EtoNeYa" else "котенок"
+                final_list.append(f"{item['link']}#{name} | {author} | Ваш {cat} ❤")
 
     # Шапка
     now = datetime.now().strftime('%d.%m %H:%M')
-    final_list.insert(0, f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#REMARK=🐈 Custom Mix | {now} | {len(final_list)} шт.")
+    final_list.insert(0, f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#REMARK=🐈 Global Mix 🏳 | {now} | {len(final_list)} шт.")
 
-    # Сохранение
-    content = "\n".join(final_list)
-    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(content)
+    # Сохранение (TXT и Base64)
+    res_text = "\n".join(final_list)
+    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
     with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-        f.write(base64.b64encode(content.encode()).decode())
-        
-    print(f"✅ Готово! EtoNeYa теперь особенная 🏳")
+        f.write(base64.b64encode(res_text.encode()).decode())
+    
+    print(f"✅ Успех! Сабка готова, белые списки помечены 🏳.")
 
 if __name__ == "__main__":
     run()

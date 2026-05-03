@@ -1,6 +1,6 @@
 import requests, re, urllib.parse, base64
 
-# ТВОИ АКТУАЛЬНЫЙ СПИСОК ИСТОЧНИКОВ
+# ТВОИ АКТУАЛЬНЫЕ ИСТОЧНИКИ
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -10,6 +10,7 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
+# Карта для распознавания стран через дешифратор
 COUNTRY_MAP = {
     "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
     "usa": "🇺🇸 USA", "unitedstates": "🇺🇸 USA", "ukraine": "🇺🇦 Ukraine", 
@@ -18,7 +19,7 @@ COUNTRY_MAP = {
 }
 
 def universal_decode(text):
-    """Дешифрует греческие символы в обычную латиницу для EtoNeYa"""
+    """Дешифрует греческие символы в обычную латиницу"""
     table = {
         'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'a', 'ζ': 'z', 'η': 'n', 'θ': 'h',
         'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
@@ -29,10 +30,10 @@ def universal_decode(text):
     return re.sub(r'[^a-z]', '', decoded)
 
 def get_name(old_name):
-    # 1. ПРИОРИТЕТ: Ищем готовый эмодзи-флаг
+    # 1. ПРИОРИТЕТ: Ищем уже готовый эмодзи-флаг (вернет строку, а не список)
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
     if flags:
-        return flags[0] # Возвращаем СТРОКУ, а не список
+        return flags[0]
     
     # 2. Если флага нет, дешифруем абракадабру (для EtoNeYa)
     clean = universal_decode(old_name)
@@ -55,7 +56,7 @@ def parse():
         except: pass
 
     if unique_cfgs:
-        # Сортировка: VLESS (приоритет 0) всегда в топе
+        # ИСПРАВЛЕННАЯ СОРТИРОВКА: x[0] - это сама ссылка
         sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
         
         final_list = []
@@ -73,15 +74,15 @@ def parse():
             elif "Ilyacom4ik" in src: auth = "FCH"
             else: auth = "Other"
 
-            # Получаем имя
+            # Получаем красивое имя
             country = get_name(old_name)
             if "anycast" in old_name.lower(): 
                 name = "🌐 Anycast"
             elif country:
                 name = country
             else:
-                name = f"Обход {counts[auth]}"
-                counts[auth] += 1
+                name = f"Обход {counts.get(auth, 1)}"
+                counts[auth] = counts.get(auth, 1) + 1
 
             final_list.append(f"{base}#{name} | {auth} | Ваш котенок ❤")
 
@@ -91,7 +92,7 @@ def parse():
             f.write(base64.b64encode(res_text.encode()).decode())
         print(f"✅ Успех! Собрано: {len(final_list)}")
     else:
-        print("😿 Новых конфигов не нашли.")
+        print("😿 Ничего не нашли.")
 
 if __name__ == "__main__":
     parse()

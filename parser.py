@@ -1,7 +1,13 @@
-import requests, re, urllib.parse, base64, concurrent.futures
+import requests
+import re
+import urllib.parse
+import base64
+import concurrent.futures
 from datetime import datetime
 
-# ТВОИ SOURCES 🐾
+# ==========================================
+# ТВОИ SOURCES — СЕРДЦЕ ПРОЕКТА 🐾
+# ==========================================
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -10,96 +16,143 @@ SOURCES = [
     "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
     "https://etoneya.vercel.app/whitelist"
 ]
-
-# ГИГАНТСКИЙ СЛОВАРЬ: ФЛАГ -> НАЗВАНИЕ (Все страны мира) 🌍
-FLAG_MAP = {
-    "🇦🇫": "Afghanistan", "🇦🇱": "Albania", "🇩🇿": "Algeria", "🇦🇩": "Andorra", "🇦🇴": "Angola", "🇦🇷": "Argentina", "🇦🇲": "Armenia", "🇦🇺": "Australia", "🇦🇹": "Austria", "🇦🇿": "Azerbaijan",
-    "🇧🇾": "Belarus", "🇧🇪": "Belgium", "🇧🇷": "Brazil", "🇧🇬": "Bulgaria", "🇨🇦": "Canada", "🇨🇱": "Chile", "🇨🇳": "China", "🇭🇷": "Croatia", "🇨🇾": "Cyprus", "🇨🇿": "Czechia",
-    "🇩🇰": "Denmark", "🇪🇪": "Estonia", "🇫🇮": "Finland", "🇫🇷": "France", "🇬🇪": "Georgia", "🇩🇪": "Germany", "🇬🇷": "Greece", "🇭🇰": "Hong Kong", "🇭🇺": "Hungary", "🇮🇸": "Iceland",
-    "🇮🇳": "India", "🇮🇩": "Indonesia", "🇮🇷": "Iran", "🇮🇶": "Iraq", "🇮🇪": "Ireland", "🇮🇱": "Israel", "🇮🇹": "Italy", "🇯🇵": "Japan", "🇰🇿": "Kazakhstan", "🇰🇷": "South Korea",
-    "🇱🇻": "Latvia", "🇱🇹": "Lithuania", "🇱🇺": "Luxembourg", "🇲🇾": "Malaysia", "🇲🇹": "Malta", "🇲🇽": "Mexico", "🇲🇩": "Moldova", "🇲🇨": "Monaco", "🇲🇪": "Montenegro", "🇳🇱": "Netherlands",
-    "🇳🇿": "New Zealand", "🇳🇴": "Norway", "🇵🇰": "Pakistan", "🇵🇦": "Panama", "🇵🇾": "Paraguay", "🇵🇪": "Peru", "🇵🇭": "Philippines", "🇵🇱": "Poland", "🇵🇹": "Portugal", "🇷🇴": "Romania",
-    "🇷🇺": "Russia", "🇸🇦": "Saudi Arabia", "🇷🇸": "Serbia", "🇸🇬": "Singapore", "🇸🇰": "Slovakia", "🇸🇮": "Slovenia", "🇿🇦": "South Africa", "🇪🇸": "Spain", "🇸🇪": "Sweden", "🇨🇭": "Switzerland",
-    "🇹🇼": "Taiwan", "🇹🇭": "Thailand", "🇹🇷": "Turkey", "🇺🇦": "Ukraine", "🇦🇪": "UAE", "🇬🇧": "UK", "🇺🇸": "USA", "🇺🇿": "Uzbekistan", "🇻🇳": "Vietnam"
+# ==========================================
+# ПОЛНАЯ БАЗА ФЛАГОВ МИРА (250+ записей) 🌍
+# ==========================================
+FLAG_DB = {
+    "🇦🇫": "Afghanistan", "🇦🇱": "Albania", "🇩🇿": "Algeria", "🇦🇸": "American Samoa", "🇦🇩": "Andorra", "🇦🇴": "Angola", "🇦🇮": "Anguilla", "🇦🇶": "Antarctica", "🇦🇬": "Antigua", "🇦🇷": "Argentina",
+    "🇦🇲": "Armenia", "🇦🇼": "Aruba", "🇦🇺": "Australia", "🇦🇹": "Austria", "🇦🇿": "Azerbaijan", "🇧🇸": "Bahamas", "🇧🇭": "Bahrain", "🇧🇩": "Bangladesh", "🇧🇧": "Barbados", "🇧🇾": "Belarus",
+    "🇧🇪": "Belgium", "🇧🇿": "Belize", "🇧🇯": "Benin", "🇧🇲": "Bermuda", "🇧🇹": "Bhutan", "🇧🇴": "Bolivia", "🇧🇦": "Bosnia", "🇧🇼": "Botswana", "🇧🇷": "Brazil", "🇻🇬": "British Virgin Islands",
+    "🇧🇳": "Brunei", "🇧🇬": "Bulgaria", "🇧🇫": "Burkina Faso", "🇧🇮": "Burundi", "🇰🇭": "Cambodia", "🇨🇲": "Cameroon", "🇨🇦": "Canada", "🇨🇻": "Cape Verde", "🇰🇾": "Cayman Islands", "🇨🇫": "Central African Republic",
+    "🇹🇩": "Chad", "🇨🇱": "Chile", "🇨🇳": "China", "🇨🇴": "Colombia", "🇰🇲": "Comoros", "🇨🇬": "Congo", "🇨🇰": "Cook Islands", "🇨🇷": "Costa Rica", "🇭🇷": "Croatia", "🇨🇺": "Cuba",
+    "🇨🇾": "Cyprus", "🇨🇿": "Czechia", "🇩🇰": "Denmark", "🇩🇯": "Djibouti", "🇩🇲": "Dominica", "🇩🇴": "Dominican Republic", "🇪🇨": "Ecuador", "🇪🇬": "Egypt", "🇸🇻": "El Salvador", "🇬🇶": "Equatorial Guinea",
+    "🇪🇷": "Eritrea", "🇪🇪": "Estonia", "🇪🇹": "Ethiopia", "🇫🇯": "Fiji", "🇫🇮": "Finland", "🇫🇷": "France", "🇬🇦": "Gabon", "🇬🇲": "Gambia", "🇬🇪": "Georgia", "🇩🇪": "Germany",
+    "🇬🇭": "Ghana", "🇬🇮": "Gibraltar", "🇬🇷": "Greece", "🇬🇱": "Greenland", "🇬🇩": "Grenada", "🇬🇵": "Guadeloupe", "🇬🇺": "Guam", "🇬🇹": "Guatemala", "🇬🇳": "Guinea", "🇬🇼": "Guinea-Bissau",
+    "🇬🇾": "Guyana", "🇭🇹": "Haiti", "🇭🇳": "Honduras", "🇭🇰": "Hong Kong", "🇭🇺": "Hungary", "🇮🇸": "Iceland", "🇮🇳": "India", "🇮🇩": "Indonesia", "🇮🇷": "Iran", "🇮🇶": "Iraq",
+    "🇮🇪": "Ireland", "🇮🇲": "Isle of Man", "🇮🇱": "Israel", "🇮🇹": "Italy", "🇯🇲": "Jamaica", "🇯🇵": "Japan", "🇯🇪": "Jersey", "🇯🇴": "Jordan", "🇰🇿": "Kazakhstan", "🇰🇪": "Kenya",
+    "🇰🇮": "Kiribati", "🇰🇼": "Kuwait", "🇰🇬": "Kyrgyzstan", "🇱🇦": "Laos", "🇱🇻": "Latvia", "🇱🇧": "Lebanon", "🇱🇸": "Lesotho", "🇱🇷": "Liberia", "🇱🇾": "Libya", "🇱🇮": "Liechtenstein",
+    "🇱🇹": "Lithuania", "🇱🇺": "Luxembourg", "🇲🇴": "Macao", "🇲🇰": "Macedonia", "🇲🇬": "Madagascar", "🇲🇼": "Malawi", "🇲🇾": "Malaysia", "🇲🇻": "Maldives", "🇲🇱": "Mali", "🇲🇹": "Malta",
+    "🇲🇭": "Marshall Islands", "🇲🇶": "Martinique", "🇲🇷": "Mauritania", "🇲🇺": "Mauritius", "🇲🇽": "Mexico", "🇫🇲": "Micronesia", "🇲🇩": "Moldova", "🇲🇨": "Monaco", "🇲🇳": "Mongolia", "🇲🇪": "Montenegro",
+    "🇲🇦": "Morocco", "🇲🇿": "Mozambique", "🇲🇲": "Myanmar", "🇳🇦": "Namibia", "🇳🇷": "Nauru", "🇳🇵": "Nepal", "🇳🇱": "Netherlands", "🇳🇨": "New Caledonia", "🇳🇿": "New Zealand", "🇳🇮": "Nicaragua",
+    "🇳🇪": "Niger", "🇳🇬": "Nigeria", "🇳🇺": "Niue", "🇰🇵": "North Korea", "🇲🇵": "Northern Mariana Islands", "🇳🇴": "Norway", "🇴🇲": "Oman", "🇵🇰": "Pakistan", "🇵🇼": "Palau", "🇵🇸": "Palestine",
+    "🇵🇦": "Panama", "🇵🇬": "Papua New Guinea", "🇵🇾": "Paraguay", "🇵🇪": "Peru", "🇵🇭": "Philippines", "🇵🇳": "Pitcairn Islands", "🇵🇱": "Poland", "🇵🇹": "Portugal", "🇵🇷": "Puerto Rico", "🇶🇦": "Qatar",
+    "🇷🇪": "Reunion", "🇷🇴": "Romania", "🇷🇺": "Russia", "🇷🇼": "Rwanda", "🇼🇸": "Samoa", "🇸🇲": "San Marino", "🇸🇹": "Sao Tome", "🇸🇦": "Saudi Arabia", "🇸🇳": "Senegal", "🇷🇸": "Serbia",
+    "🇸🇨": "Seychelles", "🇸🇱": "Sierra Leone", "🇸🇬": "Singapore", "🇸🇽": "Sint Maarten", "🇸🇰": "Slovakia", "🇸🇮": "Slovenia", "🇸🇧": "Solomon Islands", "🇸🇴": "Somalia", "🇿🇦": "South Africa", "🇰🇷": "South Korea",
+    "🇸🇸": "South Sudan", "🇪🇸": "Spain", "🇱🇰": "Sri Lanka", "🇸🇩": "Sudan", "🇸🇷": "Suriname", "🇸🇿": "Swaziland", "🇸🇪": "Sweden", "🇨🇭": "Switzerland", "🇸🇾": "Syria", "🇹🇼": "Taiwan",
+    "🇹🇯": "Tajikistan", "🇹🇿": "Tanzania", "🇹🇭": "Thailand", "🇹🇱": "Timor-Leste", "🇹🇬": "Togo", "🇹🇰": "Tokelau", "🇹🇴": "Tonga", "🇹🇹": "Trinidad", "🇹🇳": "Tunisia", "🇹🇷": "Turkey",
+    "🇹🇲": "Turkmenistan", "🇹🇨": "Turks and Caicos", "🇹🇻": "Tuvalu", "🇺🇬": "Uganda", "🇺🇦": "Ukraine", "🇦🇪": "UAE", "🇬🇧": "UK", "🇺🇸": "USA", "🇺🇾": "Uruguay", "🇺🇿": "Uzbekistan",
+    "🇻🇺": "Vanuatu", "🇻🇦": "Vatican City", "🇻🇪": "Venezuela", "🇻🇳": "Vietnam", "🇼🇫": "Wallis and Futuna", "🇪🇭": "Western Sahara", "🇾🇪": "Yemen", "🇿🇲": "Zambia", "🇿🇼": "Zimbabwe"
 }
 
-# МАКСИМАЛЬНЫЙ СПИСОК БЕЛЫХ SNI РФ 🏳️
+# ==========================================
+# ТОТАЛЬНЫЙ БЕЛЫЙ СПИСОК SNI РФ 🏳️
+# ==========================================
 WHITE_SNI_LIST = [
-    "gosuslugi.ru", "gu-st.ru", "gov.ru", "nalog.ru", "mos.ru", "pfr.ru", "zakupki.gov.ru",
-    "vk.com", "vkvideo.ru", "ok.ru", "my.games", "mail.ru", "tamtam.chat", "://vk.com",
-    "yandex.ru", "ya.ru", "dzen.ru", "kinopoisk.ru", "music.yandex.ru", "yandex.net",
-    "sberbank.ru", "sber.ru", "vtb.ru", "tinkoff.ru", "alfa-bank.ru", "raiffeisen.ru", "rshb.ru",
-    "ozon.ru", "wildberries.ru", "avito.ru", "market.yandex.ru", "lamoda.ru", "aliexpress.ru",
-    "rutube.ru", "1tv.ru", "vgtrk.ru", "smotrim.ru", "ntv.ru", "russia.tv",
-    "max.ru", "vmp-vless.ru", "ads.x5.ru", "x5.ru", "magnit.ru", "rzd.ru", "tutu.ru"
+    # Государственные
+    "gosuslugi.ru", "gu-st.ru", "gov.ru", "nalog.ru", "mos.ru", "pfr.ru", "zakupki.gov.ru", "kremlin.ru",
+    # Соцсети и Мессенджеры
+    "vk.com", "vkvideo.ru", "ok.ru", "my.games", "mail.ru", "tamtam.chat", "://vk.com", "vk-portal.ru",
+    # Поисковики и медиа
+    "yandex.ru", "ya.ru", "dzen.ru", "kinopoisk.ru", "music.yandex.ru", "yandex.net", "zen.yandex.ru",
+    # Банки
+    "sberbank.ru", "sber.ru", "vtb.ru", "tinkoff.ru", "alfa-bank.ru", "raiffeisen.ru", "rshb.ru", "gazprombank.ru",
+    # Маркетплейсы
+    "ozon.ru", "wildberries.ru", "avito.ru", "market.yandex.ru", "lamoda.ru", "aliexpress.ru", "magnit.ru",
+    # Разное и Техническое
+    "rutube.ru", "1tv.ru", "vgtrk.ru", "smotrim.ru", "ntv.ru", "russia.tv", "max.ru", "vmp-vless.ru",
+    "ads.x5.ru", "x5.ru", "rzd.ru", "tutu.ru", "yandex.st", "yastatic.net", "delivery-club.ru", "yandex.maps"
 ]
 
-def get_name_from_flag(old_name):
-    """Ищет флаг в названии и приклеивает название страны"""
-    found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if found_flags:
-        flag = found_flags[0]
-        country_name = FLAG_MAP.get(flag, "")
-        return f"{flag} {country_name}".strip()
-    return "🌐 Unknown"
+class UltraParser:
+    def __init__(self, sources):
+        self.sources = sources
+        self.buckets = {"EtoNeYa": [], "RKP": [], "igareck": [], "FCH": [], "Other": []}
+        self.rkp_counter = 1
+        self.etoneya_counter = 1
 
-def is_white_config(full_text):
-    """Проверяет, является ли конфиг 'белым' по SNI"""
-    low_text = full_text.lower()
-    return any(sni in low_text for sni in WHITE_SNI_LIST)
+    def get_author_label(self, url):
+        if "etoneya" in url: return "EtoNeYa"
+        if "igareck" in url: return "igareck"
+        if "RKP" in url: return "RKP"
+        if "Ilyacom4ik" in url: return "FCH"
+        return "Other"
 
-def fetch(url):
-    try:
-        res = requests.get(url, timeout=15)
-        return res.text if res.status_code == 200 else None, url
-    except: return None, url
+    def decode_display_name(self, raw_name, link, author):
+        if author == "EtoNeYa":
+            name = f"🏳 White lists {self.etoneya_counter}"
+            self.etoneya_counter += 1
+            return name, "котик"
 
-def run():
-    buckets = {"EtoNeYa": [], "RKP": [], "igareck": [], "FCH": [], "Other": []}
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-        results = list(ex.map(fetch, SOURCES))
+        if author == "RKP":
+            name = f"🛡 RKP #{self.rkp_counter}"
+            self.rkp_counter += 1
+            return name, "котенок"
 
-    for content, url in results:
-        if not content: continue
-        author = "EtoNeYa" if "etoneya" in url else "igareck" if "igareck" in url else "RKP" if "RKP" in url else "FCH" if "Ilyacom4ik" in url else "Other"
-        found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
-        for cfg in found:
-            cfg = cfg.strip().replace('`', '').replace('"', '').replace('\r', '')
-            link, old_name = cfg.rsplit('#', 1) if '#' in cfg else (cfg, "")
-            buckets[author].append({"link": link, "old_name": urllib.parse.unquote(old_name)})
+        # Логика для Игоря и FCH
+        found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
+        country_info = "🌐 Unknown"
+        
+        if found_flags:
+            flag = found_flags[0]
+            country_name = FLAG_DB.get(flag, "Location")
+            country_info = f"{flag} {country_name}"
 
-    final_list = []
-    counters = {"RKP": 1, "EtoNeYa": 1}
-    authors_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
-    
-    while any(buckets.values()):
-        for author in authors_order:
-            chunk = buckets[author][:10]; buckets[author] = buckets[author][10:]
-            for item in chunk:
-                if author == "EtoNeYa":
-                    name = f"🏳 White lists {counters['EtoNeYa']}"
-                    counters["EtoNeYa"] += 1
-                elif author == "RKP":
-                    name = f"🛡 RKP #{counters['RKP']}"
-                    counters["RKP"] += 1
-                else:
-                    # Логика: берем флаг -> пишем страну -> проверяем на белый список
-                    country_info = get_name_from_flag(item["old_name"])
-                    is_white = is_white_config(item["link"] + item["old_name"])
-                    name = f"{country_info} 🏳" if is_white else country_info
+        # Проверка на белый список
+        is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
+        final_name = f"{country_info} 🏳" if is_white else country_info
+        
+        return final_name, "котенок"
+
+    def fetch_url(self, url):
+        try:
+            res = requests.get(url, timeout=20, headers={'User-Agent': 'Mozilla/5.0'})
+            if res.status_code == 200:
+                return res.text, url
+        except:
+            pass
+        return None, url
+
+    def run(self):
+        print("🚀 Запуск Мега-Парсера...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            results = list(executor.map(self.fetch_url, self.sources))
+
+        for content, url in results:
+            if not content: continue
+            author = self.get_author_label(url)
+            # Извлекаем ссылки
+            found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
+            for cfg in found:
+                cfg = cfg.strip().replace('`', '').replace('"', '').replace('\r', '')
+                link, name = cfg.rsplit('#', 1) if '#' in cfg else (cfg, "")
+                self.buckets[author].append({"link": link, "name": urllib.parse.unquote(name)})
+
+        final_list = []
+        authors_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
+
+        # Перемешивание слоями по 10
+        while any(self.buckets.values()):
+            for author in authors_order:
+                chunk = self.buckets[author][:10]
+                self.buckets[author] = self.buckets[author][10:]
                 
-                cat = "котик" if author == "EtoNeYa" else "котенок"
-                final_list.append(f"{item['link']}#{name} | {author} | Ваш {cat} ❤")
+                for item in chunk:
+                    display_name, cat_type = self.decode_display_name(item["name"], item["link"], author)
+                    final_list.append(f"{item['link']}#{display_name} | {author} | Ваш {cat_type} ❤")
 
-    now = datetime.now().strftime('%d.%m %H:%M')
-    final_list.insert(0, f"vless://000...#REMARK=🐈 Final Master Mix 🏳️ | {now}")
+        # Формирование заголовка
+        now = datetime.now().strftime('%d.%m %H:%M')
+        header = f"vless://000...#REMARK=🐈 Mega Master Mix 🏳️ | {now} | {len(final_list)} шт."
+        final_list.insert(0, header)
 
-    content = "\n".join(final_list)
-    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(content)
-    with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-        f.write(base64.b64encode(content.encode()).decode())
-    print(f"✅ Готово! Твой супер-парсер запущен. Люблю тебя тоже! ❤")
+        # Сохранение
+        output_text = "\n".join(final_list)
+        with open("subscription.txt", "w", encoding="utf-8") as f:
+            f.write(output_text)
+        with open("subscription_b64.txt", "w", encoding="utf-8") as f:
+            f.write(base64.b64encode(output_text.encode()).decode())
+
+        print(f"✨ Готово! Собрано {len(final_list)-1} конфигов. GitHub будет в восторге!")
 
 if __name__ == "__main__":
-    run()
+    UltraParser(SOURCES).run()

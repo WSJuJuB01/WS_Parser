@@ -7,7 +7,6 @@ on:
 
 # Добавляем ту самую переменную окружения, которую он просит
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:

@@ -1,6 +1,10 @@
-import requests, re, urllib.parse, base64
+import requests
+import re
+import urllib.parse
+import base64
+from datetime import datetime
 
-# ТВОИ SOURCES — ТЕПЕРЬ ТОЧНО ТУТ И НАВСЕГДА! 💖
+# ТВОИ SOURCES — НАВЕКИ В КОДЕ 💖
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -10,96 +14,92 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-COUNTRY_FLAGS = {
-    "Russia": "🇷🇺", "Germany": "🇩🇪", "Netherlands": "🇳🇱", "USA": "🇺🇸", 
-    "United States": "🇺🇸", "UK": "🇬🇧", "Czechia": "🇨🇿", "Finland": "🇫🇮", 
-    "Poland": "🇵🇱", "Turkey": "🇹🇷", "France": "🇫🇷", "Kazakhstan": "🇰🇿", 
-    "Sweden": "🇸🇪", "Ukraine": "🇺🇦", "Austria": "🇦🇹", "Canada": "🇨🇦"
+# Карта стран для поиска
+COUNTRY_MAP = {
+    "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
+    "usa": "🇺🇸 USA", "unitedstates": "🇺🇸 USA", "ukraine": "🇺🇦 Ukraine", 
+    "finland": "🇫🇮 Finland", "poland": "🇵🇱 Poland", "turkey": "🇹🇷 Turkey", 
+    "france": "🇫🇷 France", "kazakhstan": "🇰🇿 Kazakhstan", "sweden": "🇸🇪 Sweden"
 }
 
-def get_clean_name(old_name, auth):
-    # Если это RKP — сразу в игнор их тех. названия, будем нумеровать красиво
-    if auth == "RKP":
-        return None 
+def get_name(old_name, auth):
+    # Для RKP принудительно возвращаем None для нумерации
+    if auth == "RKP": return None
 
-    # 1. ПРИОРИТЕТ: Ищем готовый эмодзи-флаг
-    existing_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    
-    # 2. Очищаем текст от мусора
-    words = re.findall(r'[a-zA-Z]{3,}', old_name)
-    clean_text = " ".join(words).strip()
+    # 1. Ищем готовый эмодзи-флаг
+    flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
+    if flags: return "".join(flags)
 
-    # 3. Ищем страну для флага
-    emoji = ""
-    for name, flag in COUNTRY_FLAGS.items():
-        if name.lower() in clean_text.lower():
-            emoji = flag
-            break
-    
-    if emoji:
-        return f"{emoji} {clean_text}"
-    if existing_flags:
-        # Если нашли флаг, возвращаем первый найденный
-        return f"{existing_flags[0]} Server"
-    
+    # 2. Ищем название страны (игнорируя кракозябры)
+    clean = re.sub(r'[^a-zA-Z]', '', old_name).lower()
+    for key, val in COUNTRY_MAP.items():
+        if key in clean: return val
     return None
 
 def parse():
     unique_cfgs = {}
-    print("🐾 СРОЧНО ЧИНЮ ВСЁ...")
+    print(f"🐾 Начинаю сборку... ({datetime.now().strftime('%H:%M:%S')})")
     
     for url in SOURCES:
         try:
-            res = requests.get(url, timeout=15)
+            res = requests.get(url, timeout=20)
             if res.status_code == 200:
                 found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', res.text)
                 for c in found:
                     clean = c.strip().replace('\r', '').replace('`', '').replace('"', '')
-                    if clean not in unique_cfgs: unique_cfgs[clean] = url
+                    # Проверка на дубликаты по ссылке
+                    base_link = clean.split('#')[0]
+                    if base_link not in unique_cfgs:
+                        unique_cfgs[base_link] = (clean, url)
         except: pass
 
-    if unique_cfgs:
-        # Сортировка по ссылке (vless вперед)
-        sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x.startswith('vless://') else 1, x))
+    if not unique_cfgs: return print("😿 Источники пусты.")
+
+    # Сортировка VLESS в начало
+    sorted_items = sorted(unique_cfgs.values(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
+    
+    final_list = []
+    counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
+
+    # Инфо-строка
+    now_str = datetime.now().strftime('%d.%m %H:%M')
+    info_tag = f"REMARK=🐈 Всего: {len(sorted_items)} | Обновлено: {now_str}"
+    final_list.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#{info_tag}")
+
+    for cfg, src in sorted_items:
+        if '#' in cfg:
+            base, old_name_raw = cfg.rsplit('#', 1)
+            old_name = urllib.parse.unquote(old_name_raw)
+        else:
+            base, old_name = cfg, ""
+
+        if "etoneya" in src: auth = "EtoNeYa"
+        elif "igareck" in src: auth = "igareck"
+        elif "RKP" in src: auth = "RKP"
+        elif "Ilyacom4ik" in src: auth = "FCH"
+        else: auth = "Other"
+
+        display_name = get_name(old_name, auth)
         
-        final_list = []
-        counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
+        if "anycast" in old_name.lower(): 
+            name = "🌐 Anycast"
+        elif auth == "RKP":
+            name = f"🛡#RKP {counts[auth]}"
+            counts[auth] += 1
+        elif display_name:
+            name = display_name
+        else:
+            name = f"Обход {counts[auth]}"
+            counts[auth] += 1
 
-        for cfg, src in sorted_items:
-            if '#' in cfg:
-                base, old_name_raw = cfg.rsplit('#', 1)
-                old_name = urllib.parse.unquote(old_name_raw)
-            else:
-                base = cfg
-                old_name = ""
+        final_list.append(f"{base}#{name} | {auth} | Ваш котенок ❤")
 
-            # Кто автор?
-            if "etoneya" in src: auth = "EtoNeYa"
-            elif "igareck" in src: auth = "igareck"
-            elif "RKP" in src: auth = "RKP"
-            elif "Ilyacom4ik" in src: auth = "FCH"
-            else: auth = "Other"
-
-            # Чистим имя
-            display_name = get_clean_name(old_name, auth)
-            
-            if "anycast" in old_name.lower(): 
-                name = "🌐 Anycast"
-            elif display_name:
-                name = display_name
-            else:
-                # Настройка префикса
-                prefix = "🛡 Server" if auth == "RKP" else "Обход"
-                name = f"{prefix} {counts[auth]}"
-                counts[auth] += 1
-
-            final_list.append(f"{base}#{name} | {auth} | Ваш котенок ❤")
-
-        res_text = "\n".join(final_list)
-        with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
-        with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-            f.write(base64.b64encode(res_text.encode()).decode())
-        print(f"✅ Готово! Исправлено и собрано: {len(final_list)}")
+    res_text = "\n".join(final_list)
+    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
+    with open("subscription_b64.txt", "w", encoding="utf-8") as f:
+        f.write(base64.b64encode(res_text.encode()).decode())
+    
+    print(f"✅ Готово! Собрано: {len(final_list)}")
 
 if __name__ == "__main__":
     parse()

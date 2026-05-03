@@ -1,7 +1,11 @@
-import requests, re, urllib.parse, base64
+import requests
+import re
+import urllib.parse
+import base64
+import concurrent.futures
 from datetime import datetime
 
-# ТВОИ SOURCES — ВСЕГДА В КОДЕ 🐾
+# ТВОИ SOURCES 🐾
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -11,91 +15,134 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-# Карта для EtoNeYa: ищем английское слово -> ставим флаг
+# База данных для распознавания локаций
 COUNTRY_DATA = {
-    "Russia": "🇷🇺 Russia", "Germany": "🇩🇪 Germany", "Netherlands": "🇳🇱 Netherlands",
-    "USA": "🇺🇸 USA", "United States": "🇺🇸 USA", "UK": "🇬🇧 UK", "Czechia": "🇨🇿 Czechia",
-    "Finland": "🇫🇮 Finland", "Poland": "🇵🇱 Poland", "Turkey": "🇹🇷 Turkey",
-    "France": "🇫🇷 France", "Kazakhstan": "🇰🇿 Kazakhstan", "Sweden": "🇸🇪 Sweden",
-    "Ukraine": "🇺🇦 Ukraine", "Austria": "🇦🇹 Austria", "Canada": "🇨🇦 Canada"
+    "russia": "🇷🇺 Russia", " rus": "🇷🇺 Russia", "_ru": "🇷🇺 Russia",
+    "germany": "🇩🇪 Germany", " ger": "🇩🇪 Germany", "_de": "🇩🇪 Germany", "frankfurt": "🇩🇪 Germany",
+    "netherlands": "🇳🇱 Netherlands", " nl": "🇳🇱 Netherlands", "holland": "🇳🇱 Netherlands", "amsterdam": "🇳🇱 Netherlands",
+    "usa": "🇺🇸 USA", " us": "🇺🇸 USA", "united states": "🇺🇸 USA", "america": "🇺🇸 USA",
+    "finland": "🇫🇮 Finland", " fi": "🇫🇮 Finland", "helsinki": "🇫🇮 Finland",
+    "poland": "🇵🇱 Poland", " pl": "🇵🇱 Poland", "warsaw": "🇵🇱 Poland",
+    "france": "🇫🇷 France", " fr": "🇫🇷 France", "paris": "🇫🇷 France",
+    "turkey": "🇹🇷 Turkey", " tr": "🇹🇷 Turkey", "istanbul": "🇹🇷 Turkey",
+    "ukraine": "🇺🇦 Ukraine", " ua": "🇺🇦 Ukraine", "kyiv": "🇺🇦 Ukraine",
+    "kazakhstan": "🇰🇿 Kazakhstan", " kz": "🇰🇿 Kazakhstan", "astana": "🇰🇿 Kazakhstan",
+    "austria": "🇦🇹 Austria", " at": "🇦🇹 Austria", "vienna": "🇦🇹 Austria",
+    "sweden": "🇸🇪 Sweden", " se": "🇸🇪 Sweden", "stockholm": "🇸🇪 Sweden",
+    "singapore": "🇸🇬 Singapore", " sg": "🇸🇬 Singapore",
+    "japan": "🇯🇵 Japan", " jp": "🇯🇵 Japan", "tokyo": "🇯🇵 Japan",
+    "united kingdom": "🇬🇧 UK", " uk": "🇬🇧 UK", " gb": "🇬🇧 UK", "london": "🇬🇧 UK"
 }
 
-def get_name(old_name, auth):
-    if auth == "RKP": return None
-    
-    # 1. ПРИОРИТЕТ ДЛЯ ИГОРЯ: Если уже есть эмодзи-флаг — берем его!
-    flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags: 
-        return "".join(flags)
+class FullSubscriptionGenerator:
+    def __init__(self):
+        self.all_configs = []
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
 
-    # 2. ДЛЯ ETONEYA: Ищем английское слово в названии
-    for english_name, formatted in COUNTRY_DATA.items():
-        if english_name.lower() in old_name.lower():
-            return formatted
-            
-    return None
+    def identify_author(self, url):
+        """Определяет владельца источника"""
+        mapping = {
+            "etoneya": "EtoNeYa",
+            "igareck": "igareck",
+            "RKP": "RKP",
+            "Ilyacom4ik": "FCH"
+        }
+        for key, name in mapping.items():
+            if key in url:
+                return name
+        return "Dev"
 
-def parse():
-    all_data = [] 
-    print("🐾 Собираю конфиги из твоих источников...")
-    
-    for url in SOURCES:
+    def detect_location(self, text):
+        """Ищет страну в названии конфига"""
+        t_low = text.lower()
+        for key, label in COUNTRY_DATA.items():
+            if key in t_low:
+                return label
+        # Если текста нет, пробуем найти встроенные флаги
+        flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', text)
+        return "".join(flags) if flags else None
+
+    def fetch_data(self, url):
+        """Загружает данные из интернета"""
         try:
-            res = requests.get(url, timeout=20)
+            print(f"🔄 Запрашиваю: {url}")
+            res = requests.get(url, headers=self.headers, timeout=30)
             if res.status_code == 200:
-                found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', res.text)
-                for c in found:
-                    clean = c.strip().replace('\r', '').replace('`', '').replace('"', '')
-                    all_data.append((clean, url))
-        except: pass
+                return res.text, url
+        except Exception as e:
+            print(f"⚠️ Проблема с {url}: {e}")
+        return None, url
 
-    if all_data:
-        # Исправленная сортировка для GitHub Actions
-        sorted_data = sorted(all_data, key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
-        
-        final_list = []
-        counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
+    def run_parser(self):
+        """Основной цикл парсинга (многопоточный)"""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(SOURCES)) as executor:
+            downloaded = list(executor.map(self.fetch_data, SOURCES))
 
-        # Инфо-строка
-        now_str = datetime.now().strftime('%d.%m %H:%M')
-        info_tag = f"REMARK=🐈 Всего: {len(sorted_data)} | Обновлено: {now_str}"
-        final_list.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#{info_tag}")
+        for content, source_url in downloaded:
+            if not content:
+                continue
 
-        for cfg_full, src in sorted_data:
-            if '#' in cfg_full:
-                base_link, old_name_raw = cfg_full.rsplit('#', 1)
-                old_name = urllib.parse.unquote(old_name_raw)
-            else:
-                base_link, old_name = cfg_full, ""
-
-            if "etoneya" in src: auth = "EtoNeYa"
-            elif "igareck" in src: auth = "igareck"
-            elif "RKP" in src: auth = "RKP"
-            elif "Ilyacom4ik" in src: auth = "FCH"
-            else: auth = "Other"
-
-            display_name = get_name(old_name, auth)
+            author = self.identify_author(source_url)
+            # Извлекаем все ссылки на прокси
+            raw_found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
             
-            if "anycast" in old_name.lower(): 
-                name = "🌐 Anycast"
-            elif auth == "RKP":
-                name = f"🛡#RKP {counts[auth]}"
-                counts[auth] += 1
-            elif display_name:
-                name = display_name
-            else:
-                name = f"Обход {counts[auth]}"
-                counts[auth] += 1
+            for item in raw_found:
+                # Глубокая очистка строки
+                item = item.strip().replace('`', '').replace('"', '').replace('\r', '').replace('\n', '')
+                
+                # Парсинг имени и линка
+                if '#' in item:
+                    link_part, raw_name = item.rsplit('#', 1)
+                    old_name = urllib.parse.unquote(raw_name)
+                else:
+                    link_part, old_name = item, ""
 
-            final_list.append(f"{base_link}#{name} | {auth} | Ваш котенок ❤")
+                # Определяем локацию
+                location = self.detect_location(old_name)
+                
+                # Формирование финального Remark
+                if author == "RKP":
+                    display_name = f"🛡 RKP #{len(self.all_configs) + 1}"
+                elif location:
+                    display_name = location
+                else:
+                    # Если ничего не нашли, сохраняем остатки оригинального имени или даем номер
+                    clean_orig = old_name.split('|')[0].strip()
+                    display_name = clean_orig if len(clean_orig) > 1 else f"Node {len(self.all_configs) + 1}"
 
-        res_text = "\n".join(final_list)
-        with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
+                # Добавляем в общий список (ДУБЛИКАТЫ РАЗРЕШЕНЫ)
+                self.all_configs.append(f"{link_part}#{display_name} | {author} | Ваш котенок ❤")
+
+    def generate_files(self):
+        """Сортировка и сохранение в файлы"""
+        if not self.all_configs:
+            print("❌ Сбор завершен, но ничего не найдено.")
+            return
+
+        # Сортировка: VLESS сначала, остальное потом
+        self.all_configs.sort(key=lambda x: 0 if x.startswith('vless') else 1)
+
+        # Создание информационной шапки
+        update_time = datetime.now().strftime('%d.%m %H:%M')
+        header = f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#REMARK=🐾 Обновлено: {update_time} | Всего: {len(self.all_configs)}"
+        self.all_configs.insert(0, header)
+
+        final_output = "\n".join(self.all_configs)
+        
+        # Запись в обычный текст
+        with open("subscription.txt", "w", encoding="utf-8") as f:
+            f.write(final_output)
+            
+        # Запись в Base64 для клиентов
         with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-            f.write(base64.b64encode(res_text.encode()).decode())
-        print(f"✅ Готово! Собрано: {len(final_list)}")
-    else:
-        print("😿 Ссылок не нашли.")
+            b64_str = base64.b64encode(final_output.encode('utf-8')).decode('utf-8')
+            f.write(b64_str)
+
+        print(f"✨ Готово! Файлы обновлены. Собрано конфигов: {len(self.all_configs) - 1}")
 
 if __name__ == "__main__":
-    parse()
+    generator = FullSubscriptionGenerator()
+    generator.run_parser()
+    generator.generate_files()

@@ -107,7 +107,7 @@ class FinalCorrectParser:
         with open("subscription_b64.txt", "w", encoding="utf-8") as f:
             f.write(base64.b64encode(output.encode()).decode())
         
-        print(f"✅ Готово! RKP пронумерованы отдельно.")
+        print(f"✅ Готово! RKP пронумерованы отдельно. И фембойчики мне помогли🥺💖")
 
 if __name__ == "__main__":
     FinalCorrectParser().process()

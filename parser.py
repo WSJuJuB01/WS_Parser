@@ -1,17 +1,17 @@
 import requests, re, urllib.parse, base64
 from datetime import datetime
 
-# ТВОИ SOURCES — ВСЕГДА В КОДЕ 💖
+# ТВОИ SOURCES — ВСЕГДА В КОДЕ 🐾
 SOURCES = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS+All_RUS.txt",
-    "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/refs/heads/main/configs/url_work.txt",
-    "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
-    "https://etoneya.vercel.app/whitelist"
+    "https://githubusercontent.com",
+    "https://githubusercontent.com",
+    "https://githubusercontent.com",
+    "https://githubusercontent.com",
+    "https://githubusercontent.com",
+    "https://vercel.app"
 ]
 
-# Карта стран: ищем слово в названии -> получаем флаг и чистое имя
+# Карта для EtoNeYa: ищем английское слово -> ставим флаг
 COUNTRY_DATA = {
     "Russia": "🇷🇺 Russia", "Germany": "🇩🇪 Germany", "Netherlands": "🇳🇱 Netherlands",
     "USA": "🇺🇸 USA", "United States": "🇺🇸 USA", "UK": "🇬🇧 UK", "Czechia": "🇨🇿 Czechia",
@@ -21,25 +21,23 @@ COUNTRY_DATA = {
 }
 
 def get_name(old_name, auth):
-    # Для RKP — нумерация 🛡#RKP
     if auth == "RKP": return None
     
-    # Для EtoNeYa — только чистое название из списка (без кракозябр)
-    if auth == "EtoNeYa":
-        for english_name, formatted in COUNTRY_DATA.items():
-            if english_name.lower() in old_name.lower():
-                return formatted
-        return None
-
-    # Для остальных (igareck и др.) — ищем готовый флаг-эмодзи
+    # 1. ПРИОРИТЕТ ДЛЯ ИГОРЯ: Если уже есть эмодзи-флаг — берем его!
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags: return "".join(flags)
-    
+    if flags: 
+        return "".join(flags)
+
+    # 2. ДЛЯ ETONEYA: Ищем английское слово в названии
+    for english_name, formatted in COUNTRY_DATA.items():
+        if english_name.lower() in old_name.lower():
+            return formatted
+            
     return None
 
 def parse():
-    all_data = [] # Берем всё, дубли не удаляем
-    print(f"🐾 Собираю всё из 6 источников...")
+    all_data = [] 
+    print("🐾 Собираю конфиги из твоих источников...")
     
     for url in SOURCES:
         try:
@@ -51,53 +49,53 @@ def parse():
                     all_data.append((clean, url))
         except: pass
 
-    if not all_data: return
-
-    # Сортировка VLESS вверх
-    sorted_data = sorted(all_data, key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
-    
-    final_list = []
-    counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
-
-    # Инфо-строка
-    now_str = datetime.now().strftime('%d.%m %H:%M')
-    info_tag = f"REMARK=🐈 Всего: {len(sorted_data)} | Обновлено: {now_str}"
-    final_list.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#{info_tag}")
-
-    for cfg_full, src in sorted_data:
-        if '#' in cfg_full:
-            base_link, old_name_raw = cfg_full.rsplit('#', 1)
-            old_name = urllib.parse.unquote(old_name_raw)
-        else:
-            base_link, old_name = cfg_full, ""
-
-        if "etoneya" in src: auth = "EtoNeYa"
-        elif "igareck" in src: auth = "igareck"
-        elif "RKP" in src: auth = "RKP"
-        elif "Ilyacom4ik" in src: auth = "FCH"
-        else: auth = "Other"
-
-        display_name = get_name(old_name, auth)
+    if all_data:
+        # Исправленная сортировка для GitHub Actions
+        sorted_data = sorted(all_data, key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
         
-        if "anycast" in old_name.lower(): 
-            name = "🌐 Anycast"
-        elif auth == "RKP":
-            name = f"🛡#RKP {counts[auth]}"
-            counts[auth] += 1
-        elif display_name:
-            name = display_name
-        else:
-            name = f"Обход {counts[auth]}"
-            counts[auth] += 1
+        final_list = []
+        counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
 
-        final_list.append(f"{base_link}#{name} | {auth} | Ваш котенок ❤")
+        # Инфо-строка
+        now_str = datetime.now().strftime('%d.%m %H:%M')
+        info_tag = f"REMARK=🐈 Всего: {len(sorted_data)} | Обновлено: {now_str}"
+        final_list.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#{info_tag}")
 
-    res_text = "\n".join(final_list)
-    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
-    with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-        f.write(base64.b64encode(res_text.encode()).decode())
-    
-    print(f"✅ Готово! Собрано строк: {len(final_list)}")
+        for cfg_full, src in sorted_data:
+            if '#' in cfg_full:
+                base_link, old_name_raw = cfg_full.rsplit('#', 1)
+                old_name = urllib.parse.unquote(old_name_raw)
+            else:
+                base_link, old_name = cfg_full, ""
+
+            if "etoneya" in src: auth = "EtoNeYa"
+            elif "igareck" in src: auth = "igareck"
+            elif "RKP" in src: auth = "RKP"
+            elif "Ilyacom4ik" in src: auth = "FCH"
+            else: auth = "Other"
+
+            display_name = get_name(old_name, auth)
+            
+            if "anycast" in old_name.lower(): 
+                name = "🌐 Anycast"
+            elif auth == "RKP":
+                name = f"🛡#RKP {counts[auth]}"
+                counts[auth] += 1
+            elif display_name:
+                name = display_name
+            else:
+                name = f"Обход {counts[auth]}"
+                counts[auth] += 1
+
+            final_list.append(f"{base_link}#{name} | {auth} | Ваш котенок ❤")
+
+        res_text = "\n".join(final_list)
+        with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
+        with open("subscription_b64.txt", "w", encoding="utf-8") as f:
+            f.write(base64.b64encode(res_text.encode()).decode())
+        print(f"✅ Готово! Собрано: {len(final_list)}")
+    else:
+        print("😿 Ссылок не нашли.")
 
 if __name__ == "__main__":
     parse()

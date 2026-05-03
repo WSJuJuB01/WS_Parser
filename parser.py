@@ -2,7 +2,7 @@ import requests
 import re
 import urllib.parse
 
-# Список источников
+# ТВОЙ АКТУАЛЬНЫЙ СПИСОК ИСТОЧНИКОВ
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -12,7 +12,6 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-# Словарь для самых популярных стран (чтобы названия были красивыми)
 COMMON_COUNTRIES = {
     "🇺🇸": "USA", "🇬🇧": "United Kingdom", "🇷🇺": "Russia", "🇩🇪": "Germany",
     "🇳🇱": "Netherlands", "🇫🇷": "France", "🇰🇿": "Kazakhstan", "🇹🇷": "Turkey",
@@ -21,25 +20,22 @@ COMMON_COUNTRIES = {
 }
 
 def get_country_name(flag_emoji):
-    """Преобразует любой флаг-эмодзи в текстовое название страны"""
     if flag_emoji in COMMON_COUNTRIES:
         return COMMON_COUNTRIES[flag_emoji]
-    
-    # Магия декодирования любого флага в ISO-код (напр. 🇧🇿 -> BZ)
     try:
         codepoints = [ord(c) - 0x1F1E6 for c in flag_emoji]
         code = "".join([chr(c + ord('A')) for c in codepoints])
-        return code # Возвращает код страны (US, NL, JP), если её нет в списке COMMON
+        return code
     except:
         return "Proxy"
 
 def get_flag_emoji(text):
-    # Находим все флаги-эмодзи в тексте и возвращаем первый найденный
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', text)
     return flags[0] if flags else None
 
 def parse():
-    unique_configs = set()
+    # Используем словарь {конфиг: ссылка_источника}
+    unique_configs = {}
     
     for url in SOURCES:
         try:
@@ -50,51 +46,59 @@ def parse():
                 configs = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
                 for cfg in configs:
                     clean_cfg = cfg.strip().replace('\r', '').replace('`', '').replace('"', '')
-                    unique_configs.add(clean_cfg)
-            else:
-                print(f"Ошибка {response.status_code} для {url}")
+                    if clean_cfg not in unique_configs:
+                        unique_configs[clean_cfg] = url
         except Exception as e:
             print(f"Ошибка при обработке {url}: {e}")
 
     if unique_configs:
-        # 1. Сортировка: VLESS (приоритет 0) всегда идет первым
-        sorted_raw = sorted(
-            list(unique_configs), 
-            key=lambda x: (0 if x.startswith('vless://') else 1, x)
+        # Сортировка: VLESS в начале
+        sorted_items = sorted(
+            unique_configs.items(), 
+            key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0])
         )
         
         final_configs = []
         bypass_counter = 1 
 
-        for cfg in sorted_raw:
+        for cfg, source_url in sorted_items:
             parts = cfg.split('#', 1)
             base_link = parts[0]
-            # Определяем протокол (VLESS, SS, etc.)
-            proto = base_link.split('://')[0].upper() 
             old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
             
-            # 2. Формируем новое красивое название
+            # --- ОПРЕДЕЛЯЕМ ПОДПИСЬ АВТОРА ---
+            author_tag = ""
+            if "etoneya" in source_url:
+                author_tag = "EtoNeYa 🏳"
+            elif "igareck" in source_url:
+                author_tag = "igareck"
+            elif "RKP" in source_url:
+                author_tag = "#RKP"
+            elif "Ilyacom4ik" in source_url:
+                author_tag = "FCH"
+
+            # --- ФОРМИРУЕМ НАЗВАНИЕ ---
             flag = get_flag_emoji(old_name)
-            
             if "anycast" in old_name.lower():
                 new_name = "🌐 Anycast"
             elif flag:
-                # Получаем название страны по флагу
-                country_label = get_country_name(flag)
-                new_name = f"{flag} {country_label}"
+                new_name = f"{flag} {get_country_name(flag)}"
             else:
-                # Если флага и Anycast нет — ставим порядковый номер
                 new_name = f"Обход {bypass_counter}"
                 bypass_counter += 1
             
-            # 3. Собираем всё вместе с твоей подписью
-            final_configs.append(f"{base_link}#{new_name} | Ваш котенок ❤")
+            # Сборка: [Имя] | [Автор] | Ваш котенок ❤
+            if author_tag:
+                full_label = f"{new_name} | {author_tag} | Ваш котенок ❤"
+            else:
+                full_label = f"{new_name} | Ваш котенок ❤"
+                
+            final_configs.append(f"{base_link}#{full_label}")
 
         with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write("\n".join(final_configs))
             
         print(f"Готово! Собрано: {len(final_configs)}")
-        print("VLESS в топе, флаги с названиями стран и котенок на месте! 🐾")
     else:
         print("Новых конфигов не найдено.")
 

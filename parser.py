@@ -1,6 +1,6 @@
 import requests, re, urllib.parse, base64
 
-# ТВОИ ИСТОЧНИКИ
+# ТВОИ АКТУАЛЬНЫЙ СПИСОК ИСТОЧНИКОВ
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -18,21 +18,23 @@ COUNTRY_MAP = {
 }
 
 def universal_decode(text):
+    """Дешифрует греческие символы в обычную латиницу для EtoNeYa"""
     table = {
         'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'a', 'ζ': 'z', 'η': 'n', 'θ': 'h',
         'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
         'ρ': 'r', 'σ': 's', 'τ': 't', 'υ': 'u', 'φ': 'f', 'χ': 'x', 'ψ': 'u', 'ω': 'w',
-        '†': 'i', '‡': 's', '·': ''
+        '†': 'i', '‡': 's', '·': '', ' ': ''
     }
     decoded = "".join(table.get(c, c) for c in text.lower())
     return re.sub(r'[^a-z]', '', decoded)
 
 def get_name(old_name):
-    # 1. Ищем готовый эмодзи-флаг
+    # 1. ПРИОРИТЕТ: Ищем готовый эмодзи-флаг
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags: return flags[0]
+    if flags:
+        return flags[0] # Возвращаем СТРОКУ, а не список
     
-    # 2. Декодируем и ищем страну
+    # 2. Если флага нет, дешифруем абракадабру (для EtoNeYa)
     clean = universal_decode(old_name)
     for key, val in COUNTRY_MAP.items():
         if key in clean: return val
@@ -53,7 +55,7 @@ def parse():
         except: pass
 
     if unique_cfgs:
-        # ИСПРАВЛЕНО: Сортируем по ключу (ссылке)
+        # Сортировка: VLESS (приоритет 0) всегда в топе
         sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
         
         final_list = []
@@ -64,12 +66,14 @@ def parse():
             base = parts[0]
             old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
 
+            # Определяем автора
             if "etoneya" in src: auth = "EtoNeYa"
             elif "igareck" in src: auth = "igareck"
             elif "RKP" in src: auth = "RKP"
             elif "Ilyacom4ik" in src: auth = "FCH"
             else: auth = "Other"
 
+            # Получаем имя
             country = get_name(old_name)
             if "anycast" in old_name.lower(): 
                 name = "🌐 Anycast"
@@ -87,7 +91,7 @@ def parse():
             f.write(base64.b64encode(res_text.encode()).decode())
         print(f"✅ Успех! Собрано: {len(final_list)}")
     else:
-        print("😿 Ничего не найдено.")
+        print("😿 Новых конфигов не нашли.")
 
 if __name__ == "__main__":
     parse()

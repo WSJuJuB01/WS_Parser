@@ -10,7 +10,6 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-# Карта для распознавания текста
 COUNTRY_MAP = {
     "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
     "usa": "🇺🇸 USA", "unitedstates": "🇺🇸 USA", "ukraine": "🇺🇦 Ukraine", 
@@ -19,7 +18,6 @@ COUNTRY_MAP = {
 }
 
 def universal_decode(text):
-    """Дешифрует греческие символы в обычную латиницу"""
     table = {
         'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'a', 'ζ': 'z', 'η': 'n', 'θ': 'h',
         'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
@@ -30,12 +28,11 @@ def universal_decode(text):
     return re.sub(r'[^a-z]', '', decoded)
 
 def get_name(old_name):
-    # 1. ПРИОРИТЕТ: Ищем уже готовый эмодзи-флаг
+    # 1. Ищем готовый эмодзи-флаг
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags:
-        return flags[0] # Возвращаем найденный флаг как строку
+    if flags: return flags[0]
     
-    # 2. Если флага нет, дешифруем абракадабру (для EtoNeYa)
+    # 2. Декодируем и ищем страну
     clean = universal_decode(old_name)
     for key, val in COUNTRY_MAP.items():
         if key in clean: return val
@@ -55,41 +52,42 @@ def parse():
                     if clean not in unique_cfgs: unique_cfgs[clean] = url
         except: pass
 
-    # Сортировка: VLESS в начало
-    sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x.startswith('vless://') else 1, x))
-    final_list = []
-    counts = {"EtoNeYa": 1, "igareck": 1, "#RKP": 1, "FCH": 1, "Other": 1}
+    if unique_cfgs:
+        # ИСПРАВЛЕНО: Сортируем по ключу (ссылке)
+        sorted_items = sorted(unique_cfgs.items(), key=lambda x: (0 if x[0].startswith('vless://') else 1, x[0]))
+        
+        final_list = []
+        counts = {"EtoNeYa": 1, "igareck": 1, "RKP": 1, "FCH": 1, "Other": 1}
 
-    for cfg, src in sorted_items:
-        parts = cfg.split('#', 1)
-        base = parts[0]
-        old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
+        for cfg, src in sorted_items:
+            parts = cfg.split('#', 1)
+            base = parts[0]
+            old_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
 
-        # Определяем автора
-        if "etoneya" in src: auth = "EtoNeYa"
-        elif "igareck" in src: auth = "igareck"
-        elif "RKP" in src: auth = "#RKP"
-        elif "Ilyacom4ik" in src: auth = "FCH"
-        else: auth = "Other"
+            if "etoneya" in src: auth = "EtoNeYa"
+            elif "igareck" in src: auth = "igareck"
+            elif "RKP" in src: auth = "RKP"
+            elif "Ilyacom4ik" in src: auth = "FCH"
+            else: auth = "Other"
 
-        # Получаем красивое имя
-        country = get_name(old_name)
-        if "anycast" in old_name.lower(): 
-            name = "🌐 Anycast"
-        elif country:
-            name = country
-        else:
-            name = f"Обход {counts[auth]}"
-            counts[auth] += 1
+            country = get_name(old_name)
+            if "anycast" in old_name.lower(): 
+                name = "🌐 Anycast"
+            elif country:
+                name = country
+            else:
+                name = f"Обход {counts[auth]}"
+                counts[auth] += 1
 
-        final_list.append(f"{base}#{name} | {auth} | Ваш котенок ❤")
+            final_list.append(f"{base}#{name} | {auth} | Ваш котенок ❤")
 
-    res_text = "\n".join(final_list)
-    with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
-    with open("subscription_b64.txt", "w", encoding="utf-8") as f:
-        f.write(base64.b64encode(res_text.encode()).decode())
-    
-    print(f"✅ Готово! Собрано: {len(final_list)}")
+        res_text = "\n".join(final_list)
+        with open("subscription.txt", "w", encoding="utf-8") as f: f.write(res_text)
+        with open("subscription_b64.txt", "w", encoding="utf-8") as f:
+            f.write(base64.b64encode(res_text.encode()).decode())
+        print(f"✅ Успех! Собрано: {len(final_list)}")
+    else:
+        print("😿 Ничего не найдено.")
 
 if __name__ == "__main__":
     parse()

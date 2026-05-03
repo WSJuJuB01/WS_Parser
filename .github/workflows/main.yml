@@ -2,8 +2,8 @@ name: Auto Parser
 
 on:
   schedule:
-    - cron: '0 */1 * * *' # Запуск каждый час
-  workflow_dispatch:      # Кнопка для ручного запуска
+    - cron: '0 */1 * * *'
+  workflow_dispatch:
 
 jobs:
   update-list:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -30,7 +32,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          # Добавляем оба файла сразу
           git add subscription.txt subscription_b64.txt
           git commit -m "Update configs: $(date)" || exit 0
-          git push
+          git push origin main

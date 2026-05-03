@@ -11,20 +11,13 @@ SOURCES = [
     "https://etoneya.vercel.app/whitelist"
 ]
 
-# МАКСИМАЛЬНАЯ БАЗА СТРАН ДЛЯ 100% РЕЗУЛЬТАТА 🌍
+# База стран (для всех, кроме EtoNeYa и RKP) 🌍
 COUNTRY_MAP = {
-    "russia": "🇷🇺 Russia", " rus": "🇷🇺 Russia", "germany": "🇩🇪 Germany", " ger": "🇩🇪 Germany",
-    "netherlands": "🇳🇱 Netherlands", " nl": "🇳🇱 Netherlands", "usa": "🇺🇸 USA", "united states": "🇺🇸 USA",
-    "uk ": "🇬🇧 UK", "united kingdom": "🇬🇧 UK", "finland": "🇫🇮 Finland", " fi": "🇫🇮 Finland",
-    "poland": "🇵🇱 Poland", " pl": "🇵🇱 Poland", "turkey": "🇹🇷 Turkey", " tr": "🇹🇷 Turkey",
-    "france": "🇫🇷 France", " fr": "🇫🇷 France", "kazakhstan": "🇰🇿 Kazakhstan", " kz": "🇰🇿 Kazakhstan",
-    "ukraine": "🇺🇦 Ukraine", " ua": "🇺🇦 Ukraine", "sweden": "🇸🇪 Sweden", " se": "🇸🇪 Sweden",
-    "austria": "🇦🇹 Austria", " at": "🇦🇹 Austria", "singapore": "🇸🇬 Singapore", " sg": "🇸🇬 Singapore",
-    "japan": "🇯🇵 Japan", " jp": "🇯🇵 Japan", "hong kong": "🇭🇰 Hong Kong", " hk": "🇭🇰 Hong Kong",
-    "canada": "🇨🇦 Canada", " ca": "🇨🇦 Canada", "australia": "🇦🇺 Australia", " au": "🇦🇺 Australia",
-    "italy": "🇮🇹 Italy", " it": "🇮🇹 Italy", "spain": "🇪🇸 Spain", " es": "🇪🇸 Spain",
-    "switzerland": "🇨🇭 Switzerland", " ch": "🇨🇭 Switzerland", "brazil": "🇧🇷 Brazil", " br": "🇧🇷 Brazil",
-    "india": "🇮🇳 India", " in": "🇮🇳 India", "korea": "🇰🇷 Korea", " kr": "🇰🇷 Korea"
+    "russia": "🇷🇺 Russia", "germany": "🇩🇪 Germany", "netherlands": "🇳🇱 Netherlands",
+    "usa": "🇺🇸 USA", "united states": "🇺🇸 USA", "uk": "🇬🇧 UK", "finland": "🇫🇮 Finland",
+    "poland": "🇵🇱 Poland", "turkey": "🇹🇷 Turkey", "france": "🇫🇷 France", 
+    "kazakhstan": "🇰🇿 Kazakhstan", "ukraine": "🇺🇦 Ukraine", "sweden": "🇸🇪 Sweden", 
+    "austria": "🇦🇹 Austria", "singapore": "🇸🇬 Singapore", "japan": "🇯🇵 Japan"
 }
 
 def get_author(url):
@@ -36,16 +29,10 @@ def get_author(url):
 
 def get_pretty_country(old_name):
     low_name = old_name.lower()
-    # 1. Сначала ищем полное совпадение или код из базы
     for key, formatted in COUNTRY_MAP.items():
-        if key in low_name:
-            return formatted
-    # 2. Если не нашли, вытаскиваем эмодзи-флаги, если они есть в кракозябрах
+        if key in low_name: return formatted
     flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', old_name)
-    if flags:
-        return "".join(flags)
-    # 3. Если совсем глухо
-    return "🌐 Unknown"
+    return "".join(flags) if flags else "🌐 Unknown"
 
 def fetch(url):
     try:
@@ -54,7 +41,6 @@ def fetch(url):
     except: return None, url
 
 def run():
-    # Группировка
     buckets = {"EtoNeYa": [], "RKP": [], "igareck": [], "FCH": [], "Other": []}
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
@@ -63,7 +49,6 @@ def run():
     for content, url in results:
         if not content: continue
         author = get_author(url)
-        # Находим все ссылки
         found = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2?)://[^\s]+', content)
         
         for cfg in found:
@@ -77,35 +62,43 @@ def run():
 
     final_list = []
     rkp_counter = 1
+    etoneya_counter = 1
+    
     authors_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
     
-    # ПЕРЕМЕШИВАНИЕ СЛОЯМИ ПО 10
     while any(buckets.values()):
         for author in authors_order:
             chunk = buckets[author][:10]
             buckets[author] = buckets[author][10:]
             
             for item in chunk:
-                # Название: для RKP свой счетчик, для остальных — страна
-                if author == "RKP":
+                # СПЕЦ-ЛОГИКА ДЛЯ АВТОРОВ
+                if author == "EtoNeYa":
+                    # Тот самый кастомный формат 🏳
+                    name = f"🏳 White lists {etoneya_counter}"
+                    etoneya_counter += 1
+                elif author == "RKP":
                     name = f"🛡 RKP #{rkp_counter}"
                     rkp_counter += 1
                 else:
+                    # Для остальных — страны и флаги
                     name = get_pretty_country(item["old_name"])
 
-                final_list.append(f"{item['link']}#{name} | {author} | Ваш котенок ❤")
+                # Собираем строку (у EtoNeYa подпись "котик", у остальных "котенок")
+                cat_tag = "котик" if author == "EtoNeYa" else "котенок"
+                final_list.append(f"{item['link']}#{name} | {author} | Ваш {cat_tag} ❤")
 
-    # Шапка сабки
+    # Шапка
     now = datetime.now().strftime('%d.%m %H:%M')
-    final_list.insert(0, f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#REMARK=🐈 Super Mix | {now} | {len(final_list)} шт.")
+    final_list.insert(0, f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:443?encryption=none&type=tcp#REMARK=🐈 Custom Mix | {now} | {len(final_list)} шт.")
 
-    # Сохранение (TXT и Base64)
+    # Сохранение
     content = "\n".join(final_list)
     with open("subscription.txt", "w", encoding="utf-8") as f: f.write(content)
     with open("subscription_b64.txt", "w", encoding="utf-8") as f:
         f.write(base64.b64encode(content.encode()).decode())
         
-    print(f"✅ Готово на 100%! Теперь все страны и авторы перемешаны идеально.")
+    print(f"✅ Готово! EtoNeYa теперь особенная 🏳")
 
 if __name__ == "__main__":
     run()

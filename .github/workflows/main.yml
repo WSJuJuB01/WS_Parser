@@ -13,14 +13,14 @@ jobs:
       
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Эти версии уже поддерживают новый Node.js
         with:
           fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12' # Поставим свежий питон
 
       - name: Install Requests
         run: pip install requests

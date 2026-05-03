@@ -2,8 +2,8 @@ name: Auto Parser
 
 on:
   schedule:
-    - cron: '0 */1 * * *'
-  workflow_dispatch:
+    - cron: '0 */1 * * *' # Запуск каждый час
+  workflow_dispatch:      # Кнопка ручного запуска
 
 jobs:
   update-list:
@@ -13,14 +13,14 @@ jobs:
       
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # Эти версии уже поддерживают новый Node.js
+        uses: actions/checkout@v4 # Обновлено до v4 (Node 20+)
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5 # Обновлено до v5 (Node 20+)
         with:
-          python-version: '3.12' # Поставим свежий питон
+          python-version: '3.12'
 
       - name: Install Requests
         run: pip install requests

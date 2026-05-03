@@ -2,8 +2,13 @@ name: Auto Parser
 
 on:
   schedule:
-    - cron: '0 */1 * * *' # Запуск каждый час
-  workflow_dispatch:      # Кнопка ручного запуска
+    - cron: '0 */1 * * *'
+  workflow_dispatch:
+
+# Добавляем ту самую переменную окружения, которую он просит
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update-list:
@@ -13,12 +18,12 @@ jobs:
       
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # Обновлено до v4 (Node 20+)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v5 # Обновлено до v5 (Node 20+)
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 

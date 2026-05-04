@@ -70,41 +70,32 @@ class UltraParser:
         self.rkp_counter = 1
         self.etoneya_counter = 1
 
-    def get_author_label(self, url):
-        if "etoneya" in url: return "EtoNeYa"
-        if "igareck" in url: return "igareck"
-        if "RKP" in url: return "RKP"
-        if "Ilyacom4ik" in url: return "FCH"
-        return "Other"
-       
+    def decode_display_name(self, raw_name, link, author, url=""):
+        full_text = f"{raw_name} {link}".lower()
+
         if author == "EtoNeYa":
-            # --- 1. ПРИОРИТЕТ: WHITELIST (берем всё с БЕЛЫМ ФЛАГОМ) ---
-            if "whitelist" in url:
+            # --- 1. WHITELIST (Берем всё, вешаем белый флаг) ---
+            if url and "whitelist" in url:
                 self.etoneya_counter += 1
-                name = f"🏳 White lists #{self.etoneya_counter} | EtoNeYa"
-                return name, "котенок"
+                return f"🏳 White lists #{self.etoneya_counter} | EtoNeYa", "котенок"
 
-            # --- 2. ФАЙЛ "1" (фильтрация и твои спец-эмодзи) ---
-            if url.endswith("/1"):
-                # YouTube
+            # --- 2. ФАЙЛ "1" (Фильтруем Gemini, YouTube, Cloudflare) ---
+            if url and url.endswith("/1"):
                 if "youtube" in full_text:
-                    return "📺 YouTube🔴", "котенок"
-                
-                # Cloudflare
+                    return "📺 YouTube🔴 | EtoNeYa", "котенок"
                 if "cloudflare" in full_text:
-                    return "☁️ Cloudflare", "котенок"
-                
-                # Gemini
+                    return "☁️ Cloudflare | EtoNeYa", "котенок"
                 if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
-                    return "🤖✨ Gemini", "котенок"
-                
-                # Если в файле "1" нет ключевых слов — пропускаем
-                return None, None
+                    return "🤖✨ Gemini | EtoNeYa", "котенок"
+                return None, None  # Если слов нет — выкидываем из списка
 
-            # --- 3. ОСТАЛЬНОЕ (дефолтные конфиги EtoNeYa) ---
+            # --- 3. ОСТАЛЬНОЕ (Обычные конфиги) ---
             self.etoneya_counter += 1
-            name = f"💎 Config #{self.etoneya_counter} | EtoNeYa"
-            return name, "котенок"
+            return f"💎 Config #{self.etoneya_counter} | EtoNeYa", "котенок"
+
+        # Для других авторов оставляем как есть
+        return raw_name, "котенок"
+
 
 
 
@@ -166,9 +157,16 @@ class UltraParser:
                 chunk = self.buckets[author][:10]
                 self.buckets[author] = self.buckets[author][10:]
                 
-                for item in chunk:
-                    display_name, cat_type = self.decode_display_name(item["name"], item["link"], author)
-                    final_list.append(f"{item['link']}#{display_name} | {author} | Ваш {cat_type} ❤")
+            # Передаем url=source, чтобы работала логика выше
+            res = self.decode_display_name(item["name"], item["link"], author, url=source)
+            
+            if res is None:
+                continue # Фильтр не пройден — скипаем
+                
+            display_name, cat_type = res
+            
+            # Собираем итоговую строку: ссылка#название | приписка
+            final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
 
 
         # Сохранение

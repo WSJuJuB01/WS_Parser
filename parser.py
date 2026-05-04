@@ -13,7 +13,8 @@ SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS+All_RUS.txt",
     "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/refs/heads/main/configs/url_work.txt",
     "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
-    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/1"
+    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/1",
+    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/whitelist"
 ]
 # ==========================================
 # ПОЛНАЯ БАЗА ФЛАГОВ МИРА (250+ записей) 🌍
@@ -75,41 +76,37 @@ class UltraParser:
         if "RKP" in url: return "RKP"
         if "Ilyacom4ik" in url: return "FCH"
         return "Other"
-
-            if author == "EtoNeYa":
-            # Собираем текст (имя + ссылка) для проверки
-            full_text = (raw_name + link).lower()
-            
-            # 1. ПРИОРИТЕТ: Белый список (SNI)
-            is_white = any(sni in full_text for sni in WHITE_SNI_LIST)
-            if is_white:
-                name = f"🏳 White lists {self.etoneya_counter}"
+       
+        if author == "EtoNeYa":
+            # --- 1. ПРИОРИТЕТ: WHITELIST (берем всё с БЕЛЫМ ФЛАГОМ) ---
+            if "whitelist" in url:
                 self.etoneya_counter += 1
-                return name, "котик"
+                name = f"🏳 White lists #{self.etoneya_counter} | EtoNeYa"
+                return name, "котенок"
 
-            # 2. СПЕЦ-МЕТКИ: Если нашли Gemini (или нейронку)
-            if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
-                return "🤖 Gemini | EtoNeYa", "котенок"
-            
-            # YouTube
-            if "youtube" in full_text:
-                return "📺 YouTube | EtoNeYa", "котенок"
-            
-            # Cloudflare
-            if "cloudflare" in full_text:
-                return "☁️ Cloudflare | EtoNeYa", "котенок"
-            
-            # 3. СТРАНЫ: Чистим "1 | 🇩🇪 Germany" -> "🇩🇪 Germany"
-            clean_name = re.sub(r'^\d+\s*\|\s*', '', raw_name).strip()
-            
-            # Если в названии есть флаг страны — оставляем как есть
-            if re.search(r'[\U0001F1E6-\U0001F1FF]{2}', clean_name):
-                return f"{clean_name} | EtoNeYa", "котенок"
+            # --- 2. ФАЙЛ "1" (фильтрация и твои спец-эмодзи) ---
+            if url.endswith("/1"):
+                # YouTube
+                if "youtube" in full_text:
+                    return "📺 YouTube🔴", "котенок"
+                
+                # Cloudflare
+                if "cloudflare" in full_text:
+                    return "☁️ Cloudflare", "котенок"
+                
+                # Gemini
+                if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
+                    return "🤖✨ Gemini", "котенок"
+                
+                # Если в файле "1" нет ключевых слов — пропускаем
+                return None, None
 
-            # 4. ОСТАЛЬНОЕ
-            name = f"💎 Config #{self.etoneya_counter} | EtoNeYa"
+            # --- 3. ОСТАЛЬНОЕ (дефолтные конфиги EtoNeYa) ---
             self.etoneya_counter += 1
+            name = f"💎 Config #{self.etoneya_counter} | EtoNeYa"
             return name, "котенок"
+
+
 
         if author == "RKP":
             name = f"🛡 RKP #{self.rkp_counter}"

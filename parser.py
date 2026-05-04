@@ -68,35 +68,40 @@ class UltraParser:
             if response.status_code != 200: return
             
             author = self.get_author_label(url)
-            pattern = r'(vless|vmess|ss|trojan)://[^\s,]+'
-            links = re.findall(pattern, response.text)
+            # Ищем ссылки целиком
+            pattern = r'(vless|vmess|ss|trojan)://[^\s,|<]+'
+            found_links = re.findall(pattern, response.text)
 
-            for link in links:
+            for full_link in found_links:
+                clean_link = full_link
                 name = ""
-                if "#" in link:
-                    link_parts = link.split("#", 1)
-                    link = link_parts[0]
-                    name = urllib.parse.unquote(link_parts[1])
+                if "#" in full_link:
+                    parts = full_link.split("#", 1)
+                    clean_link = parts[0]
+                    name = urllib.parse.unquote(parts[1])
                 
                 self.buckets[author].append({
                     "name": name,
-                    "link": link,
+                    "link": clean_link,
                     "url": url
                 })
         except Exception as e:
             print(f"Ошибка при загрузке {url}: {e}")
 
     def run(self):
-        print("🚀 Запуск Мега-Парсера...")
+        print("🚀 Нарезаем торт из конфигов...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             executor.map(self.fetch_and_parse, self.sources)
 
         authors_order = ["EtoNeYa", "RKP", "igarek", "FCH", "Other"]
         final_list = []
 
-        while any(self.buckets.values()):
+        # Цикл работает, пока в любой из корзин есть хотя бы один конфиг
+        while any(len(b) > 0 for b in self.buckets.values()):
             for author in authors_order:
+                # Берем ровно 10 штук от текущего автора
                 chunk = self.buckets[author][:10]
+                # Удаляем эти 10 штук из его корзины
                 self.buckets[author] = self.buckets[author][10:]
 
                 for item in chunk:
@@ -111,25 +116,31 @@ class UltraParser:
                         continue
                     
                     display_name, cat_type = res
+                    # Собираем: ССЫЛКА#ИМЯ | ПРИПИСКА
                     final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
 
         if final_list:
-            # Убираем дубликаты
-            final_list = list(dict.fromkeys(final_list))
+            # Важно: убираем дубликаты так, чтобы НЕ ПЕРЕМЕШАТЬ торт обратно
+            seen = set()
+            unique_list = []
+            for x in final_list:
+                if x not in seen:
+                    unique_list.append(x)
+                    seen.add(x)
             
-            # 1. Сохраняем обычный текст
-            combined_string = "\n".join(final_list)
+            # Сохраняем в обычный текст
+            combined_string = "\n".join(unique_list)
             with open("subscription.txt", "w", encoding="utf-8") as f:
                 f.write(combined_string)
 
-            # 2. Сохраняем Base64 версию
+            # Сохраняем в Base64
             encoded_content = base64.b64encode(combined_string.encode('utf-8')).decode('utf-8')
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(encoded_content)
                 
-            print(f"✅ Успешно! Собрано: {len(final_list)}")
+            print(f"✅ Торт готов! Собрано: {len(unique_list)}")
         else:
-            print("❌ Ничего не собрано.")
+            print("❌ Корзины пусты.")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)

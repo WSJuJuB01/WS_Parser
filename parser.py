@@ -113,15 +113,24 @@ class UltraParser:
                     display_name, cat_type = res
                     final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
 
-                if final_list:
-            # 1. Обычный текст (разделили переносом строки)
+        if final_list:
+            # Убираем дубликаты
+            final_list = list(dict.fromkeys(final_list))
+            
+            # 1. Сохраняем обычный текст
             combined_string = "\n".join(final_list)
             with open("subscription.txt", "w", encoding="utf-8") as f:
                 f.write(combined_string)
 
-            # 2. Base64 версия
+            # 2. Сохраняем Base64 версию
             encoded_content = base64.b64encode(combined_string.encode('utf-8')).decode('utf-8')
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(encoded_content)
                 
-            print(f"✅ Обновлено! Обычный: subscription.txt, Base64: subscription_b64.txt")
+            print(f"✅ Успешно! Собрано: {len(final_list)}")
+        else:
+            print("❌ Ничего не собрано.")
+
+if __name__ == "__main__":
+    parser = UltraParser(SOURCES)
+    parser.run()

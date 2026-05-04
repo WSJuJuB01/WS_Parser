@@ -86,26 +86,26 @@ class UltraParser:
             self.etoneya_counter += 1
             return name
 
-        # 2. ПРАВИЛО: Проверка на Белый Список по SNI для остальных
+        # 2. ПРАВИЛО: Проверка на Белый Список по SNI
         is_white_sni = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
         
         # 3. Кастомная логика для RKP
         if author == "RKP":
             base_name = f"🛡️ RKP #{self.rkp_counter}"
             self.rkp_counter += 1
-            return f"🏳 {base_name}" if is_white_sni else base_name
+            return f"{base_name} 🏳" if is_white_sni else base_name
 
         # 4. Логика стран (Игорек, FCH и др.)
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
         if found_flags:
             flag = found_flags[0]
             country = FLAG_DB.get(flag, "Location")
-            display = f"{flag} {country}"
+            # Белый флаг СЗАДИ флага страны
+            if is_white_sni:
+                return f"{flag} 🏳 {country}"
+            return f"{flag} {country}"
         else:
-            display = "🌐 Unknown"
-
-        # Если конфиг белый по SNI, добавляем флаг в начало
-        return f"🏳 {display}" if is_white_sni else display
+            return "🌐 🏳 Unknown" if is_white_sni else "🌐 Unknown"
 
     def fetch_and_parse(self, url):
         try:
@@ -120,7 +120,7 @@ class UltraParser:
         except: pass
 
     def run(self):
-        print("🚀 Запуск парсера...")
+        print("🚀 Старт ремейка с флагом сзади...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
             ex.map(self.fetch_and_parse, self.sources)
 
@@ -133,7 +133,6 @@ class UltraParser:
                 self.buckets[a] = self.buckets[a][10:]
                 for item in chunk:
                     display = self.decode_display_name(item["name"], item["link"], a, item["source"])
-                    # Применяем твой формат
                     final_list.append(f"{item['link']}#{display} | {a} | Ваш котенок ❤️")
 
         if final_list:
@@ -141,7 +140,7 @@ class UltraParser:
             with open("subscription.txt", "w", encoding="utf-8") as f: f.write(content)
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(base64.b64encode(content.encode()).decode())
-            print(f"✅ Готово: {len(final_list)} конфигов обработано.")
+            print(f"✅ Готово: {len(final_list)}")
 
 if __name__ == "__main__":
     UltraParser(SOURCES).run()

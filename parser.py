@@ -70,43 +70,43 @@ class UltraParser:
         self.rkp_counter = 1
         self.etoneya_counter = 1
 
+        # --- 1. ОПРЕДЕЛЕНИЕ АВТОРА ---
+    def get_author_label(self, url):
+        url_lower = url.lower()
+        if "etoneya" in url_lower: return "EtoNeYa"
+        if "igareck" in url_lower: return "igareck"
+        if "rkp" in url_lower: return "RKP"
+        if "ilyacom4ik" in url_lower: return "FCH"
+        return "Other"
+
+    # --- 2. КРАСИВОЕ ИМЯ И ЭМОДЗИ ---
     def decode_display_name(self, raw_name, link, author, url=""):
+
         full_text = f"{raw_name} {link}".lower()
 
         if author == "EtoNeYa":
-            # --- 1. WHITELIST (Берем всё, вешаем белый флаг) ---
             if url and "whitelist" in url:
                 self.etoneya_counter += 1
                 return f"🏳 White lists #{self.etoneya_counter} | EtoNeYa", "котенок"
 
-            # --- 2. ФАЙЛ "1" (Фильтруем Gemini, YouTube, Cloudflare) ---
             if url and url.endswith("/1"):
-                if "youtube" in full_text:
-                    return "📺 YouTube🔴 | EtoNeYa", "котенок"
-                if "cloudflare" in full_text:
-                    return "☁️ Cloudflare | EtoNeYa", "котенок"
+                if "youtube" in full_text: return "📺 YouTube🔴 | EtoNeYa", "котенок"
+                if "cloudflare" in full_text: return "☁️ Cloudflare | EtoNeYa", "котенок"
                 if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
                     return "🤖✨ Gemini | EtoNeYa", "котенок"
-                return None, None  # Если слов нет — выкидываем из списка
+                return None, None
 
-            # --- 3. ОСТАЛЬНОЕ (Обычные конфиги) ---
             self.etoneya_counter += 1
             return f"💎 Config #{self.etoneya_counter} | EtoNeYa", "котенок"
 
-        # Для других авторов оставляем как есть
+        # Логика для RKP
+        if author == "RKP":
+            self.rkp_counter += 1
+            return f"🛡️ RKP #{self.rkp_counter}", "котенок"
+
+        # Для всех остальных (Игорь, FCH и т.д.)
         return raw_name, "котенок"
 
-
-
-
-        if author == "RKP":
-            name = f"🛡 RKP #{self.rkp_counter}"
-            self.rkp_counter += 1
-            return name, "котенок" # Приписку оставил как была
-
-        # Логика для Игоря и FCH (приписка тоже "котенок")
-        found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
-        country_info = "🌐 Unknown"
         
         if found_flags:
             flag = found_flags[0]

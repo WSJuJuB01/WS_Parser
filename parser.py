@@ -163,9 +163,17 @@ class UltraParser:
             if res is None:
                 continue # Фильтр не пройден — скипаем
                 
+        for item in chunk: # <--- ДОБАВЬ ЭТУ СТРОКУ ЗДЕСЬ
+            # Теперь у всего кода ниже должен быть отступ вправо (4 пробела)
+            # Передаем url=source, чтобы работала логика выше
+            res = self.decode_display_name(item["name"], item["link"], author, url=source)
+            
+            if res is None:
+                continue # Фильтр не пройден — скипаем
+                
             display_name, cat_type = res
             
-            # Собираем итоговую строку: ссылка#название | приписка
+            # Собираем итоговую строку
             final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
 
 

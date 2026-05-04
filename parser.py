@@ -117,17 +117,17 @@ class UltraParser:
                     # Сборка: полная ссылка + # + наше имя + приписка
                     final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
 
-        if final_list:
-            # Сохраняем порядок, убираем дубли
-            seen = set()
-            unique_list = [x for x in final_list if not (x in seen or seen.add(x))]
-            
-            combined_string = "\n".join(unique_list)
+                if final_list:
+            # 1. Обычный список (для чтения)
+            combined_string = "\n".join(final_list)
             with open("subscription.txt", "w", encoding="utf-8") as f:
                 f.write(combined_string)
 
+            # 2. Base64 версия (для программ)
             encoded_content = base64.b64encode(combined_string.encode('utf-8')).decode('utf-8')
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(encoded_content)
-                
-            print(f"✅ Готово! Собрано: {len(unique_list)}")
+            
+            print(f"✅ Файлы обновлены: {len(final_list)} конфигов")
+        else:
+            print("❌ Список пуст, файлы не перезаписаны")

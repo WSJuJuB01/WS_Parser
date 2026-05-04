@@ -14,7 +14,7 @@ SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS+All_RUS.txt",
     "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/refs/heads/main/configs/url_work.txt",
     "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
-    "https://etoneya.vercel.app/whitelist"
+    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/1"
 ]
 # ==========================================
 # ПОЛНАЯ БАЗА ФЛАГОВ МИРА (250+ записей) 🌍
@@ -81,14 +81,31 @@ class UltraParser:
         if author == "EtoNeYa":
             name = f"🏳 White lists {self.etoneya_counter}"
             self.etoneya_counter += 1
-            return name, "котик"
+            return name, "котенок"
+    def decode_display_name(self, raw_name, link, author):
+        if author == "EtoNeYa":
+            full_text = (raw_name + link).lower()
+            
+            # Проверяем метки (Gemini, YouTube, Cloudflare)
+            if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
+                name = "🤖 Gemini | EtoNeYa"
+            elif "youtube" in full_text:
+                name = "📺 YouTube | EtoNeYa"
+            elif "cloudflare" in full_text:
+                name = "☁️ Cloudflare | EtoNeYa"
+            else:
+                # Если меток нет — твой стандартный номер
+                name = f"🏳 White lists {self.etoneya_counter}"
+                self.etoneya_counter += 1
+            
+            return name, "котик" # Приписку оставил как была
 
         if author == "RKP":
             name = f"🛡 RKP #{self.rkp_counter}"
             self.rkp_counter += 1
-            return name, "котенок"
+            return name, "котенок" # Приписку оставил как была
 
-        # Логика для Игоря и FCH
+        # Логика для Игоря и FCH (приписка тоже "котенок")
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
         country_info = "🌐 Unknown"
         
@@ -96,6 +113,11 @@ class UltraParser:
             flag = found_flags[0]
             country_name = FLAG_DB.get(flag, "Location")
             country_info = f"{flag} {country_name}"
+
+        is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
+        final_name = f"{country_info} 🏳" if is_white else country_info
+        
+        return final_name, "котенок" # Приписку оставил как была
 
         # Проверка на белый список
         is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)

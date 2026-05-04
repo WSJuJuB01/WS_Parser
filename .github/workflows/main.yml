@@ -5,11 +5,11 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 * * * *' # Запуск ровно в начале каждого часа
-  workflow_dispatch: # Чтобы можно было тыкнуть кнопку запуска вручную
+    - cron: '0 * * * *' # Обновление каждый час
+  workflow_dispatch: # Кнопка для ручного запуска
 
 permissions:
-  contents: write # Обязательно для пуша изменений
+  contents: write # Разрешение на запись файлов
 
 jobs:
   build:
@@ -35,6 +35,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
-          git add subscribe/proxy.txt
-          git commit -m "🔄 Часовое обновление прокси" || echo "Нет изменений для коммита"
+          # Добавляем именно твои файлы
+          git add subscription.txt subscription_b64.txt
+          git commit -m "🔄 Обновление подписок: $(date)" || echo "Изменений нет"
           git push

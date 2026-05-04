@@ -76,28 +76,40 @@ class UltraParser:
         if "Ilyacom4ik" in url: return "FCH"
         return "Other"
 
-    def decode_display_name(self, raw_name, link, author):
-        if author == "EtoNeYa":
-            name = f"🏳 White lists {self.etoneya_counter}"
-            self.etoneya_counter += 1
-            return name, "котенок"
-    def decode_display_name(self, raw_name, link, author):
-        if author == "EtoNeYa":
+            if author == "EtoNeYa":
+            # Собираем текст (имя + ссылка) для проверки
             full_text = (raw_name + link).lower()
             
-            # Проверяем метки (Gemini, YouTube, Cloudflare)
-            if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
-                name = "🤖 Gemini | EtoNeYa"
-            elif "youtube" in full_text:
-                name = "📺 YouTube | EtoNeYa"
-            elif "cloudflare" in full_text:
-                name = "☁️ Cloudflare | EtoNeYa"
-            else:
-                # Если меток нет — твой стандартный номер
+            # 1. ПРИОРИТЕТ: Белый список (SNI)
+            is_white = any(sni in full_text for sni in WHITE_SNI_LIST)
+            if is_white:
                 name = f"🏳 White lists {self.etoneya_counter}"
                 self.etoneya_counter += 1
+                return name, "котик"
+
+            # 2. СПЕЦ-МЕТКИ: Если нашли Gemini (или нейронку)
+            if any(x in full_text for x in ["gemini", "bard", "google ai", "ai"]):
+                return "🤖 Gemini | EtoNeYa", "котенок"
             
-            return name, "котик" # Приписку оставил как была
+            # YouTube
+            if "youtube" in full_text:
+                return "📺 YouTube | EtoNeYa", "котенок"
+            
+            # Cloudflare
+            if "cloudflare" in full_text:
+                return "☁️ Cloudflare | EtoNeYa", "котенок"
+            
+            # 3. СТРАНЫ: Чистим "1 | 🇩🇪 Germany" -> "🇩🇪 Germany"
+            clean_name = re.sub(r'^\d+\s*\|\s*', '', raw_name).strip()
+            
+            # Если в названии есть флаг страны — оставляем как есть
+            if re.search(r'[\U0001F1E6-\U0001F1FF]{2}', clean_name):
+                return f"{clean_name} | EtoNeYa", "котенок"
+
+            # 4. ОСТАЛЬНОЕ
+            name = f"💎 Config #{self.etoneya_counter} | EtoNeYa"
+            self.etoneya_counter += 1
+            return name, "котенок"
 
         if author == "RKP":
             name = f"🛡 RKP #{self.rkp_counter}"

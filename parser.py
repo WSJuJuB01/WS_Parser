@@ -140,10 +140,6 @@ class UltraParser:
                     display_name, cat_type = self.decode_display_name(item["name"], item["link"], author)
                     final_list.append(f"{item['link']}#{display_name} | {author} | Ваш {cat_type} ❤")
 
-        # Формирование заголовка
-        now = datetime.now().strftime('%d.%m %H:%M')
-        header = f"vless://000...#REMARK=🐈 Mega Master Mix 🏳️ | {now} | {len(final_list)} шт."
-        final_list.insert(0, header)
 
         # Сохранение
         output_text = "\n".join(final_list)

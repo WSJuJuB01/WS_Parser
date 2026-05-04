@@ -1,41 +1,40 @@
-name: Auto Parser
+name: Update Proxy List
 
 on:
+  push:
+    branches:
+      - main
   schedule:
-    - cron: '0 */1 * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *' # Запуск ровно в начале каждого часа
+  workflow_dispatch: # Чтобы можно было тыкнуть кнопку запуска вручную
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+permissions:
+  contents: write # Обязательно для пуша изменений
 
 jobs:
-  update-list:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Python
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.10'
 
-      - name: Install Requests
-        run: pip install requests
+      - name: Install dependencies
+        run: |
+          pip install requests
 
-      - name: Run Script
+      - name: Run Parser Script
         run: python parser.py
 
-      - name: Push Changes
+      - name: Commit and Push changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add subscription.txt subscription_b64.txt
-          # Фикс: принудительно пушим, даже если гит капризничает
-          git commit -m "Update configs: $(date)" || echo "No changes to commit"
-          git push origin main --force
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git add subscribe/proxy.txt
+          git commit -m "🔄 Часовое обновление прокси" || echo "Нет изменений для коммита"
+          git push

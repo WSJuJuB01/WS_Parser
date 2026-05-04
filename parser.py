@@ -157,16 +157,23 @@ class UltraParser:
                 chunk = self.buckets[author][:10]
                 self.buckets[author] = self.buckets[author][10:]
                 
-            # Передаем url=source, чтобы работала логика выше
-            res = self.decode_display_name(item["name"], item["link"], author, url=source)
-            
-            if res is None:
-                continue # Фильтр не пройден — скипаем
-                
-        for item in chunk: # <--- ДОБАВЬ ЭТУ СТРОКУ ЗДЕСЬ
-            # Теперь у всего кода ниже должен быть отступ вправо (4 пробела)
-            # Передаем url=source, чтобы работала логика выше
-            res = self.decode_display_name(item["name"], item["link"], author, url=source)
+        while any(self.buckets.values()):
+            for author in authors_order:
+                chunk = self.buckets[author][:10]
+                self.buckets[author] = self.buckets[author][10:]
+
+                # ВАЖНО: сначала цикл, потом всё остальное!
+                for item in chunk:
+                    # Теперь item существует, и ошибки не будет
+                    # ВНИМАНИЕ: если будет ошибка на 'source', замени 'url=source' на 'url=""'
+                    res = self.decode_display_name(item["name"], item["link"], author, url="")
+                    
+                    if res is None:
+                        continue
+                        
+                    display_name, cat_type = res
+                    final_list.append(f"{item['link']}#{display_name} | Ваш {cat_type} ❤️")
+
             
             if res is None:
                 continue # Фильтр не пройден — скипаем

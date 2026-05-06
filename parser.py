@@ -2,6 +2,7 @@ import requests
 import re
 import urllib.parse
 import base64
+import concurrent.futures
 from datetime import datetime
 
 # ==========================================
@@ -24,7 +25,7 @@ FLAG_DB = {
 }
 
 # ==========================================
-# ТОТАЛЬНЫЙ БЕЛЫЙ СПИСОК SNI РФ 🏳️
+# ТОТАЛЬНЫЙ БЕЛЫЙ СПИСОК SNI 🏳️
 # ==========================================
 WHITE_SNI_LIST = [
     "gosuslugi.ru", "gu-st.ru", "gov.ru", "nalog.ru", "mos.ru", "pfr.ru", "zakupki.gov.ru", "kremlin.ru",
@@ -44,68 +45,91 @@ class UltraParser:
         self.etoneya_counter = 1
 
     def get_author_label(self, url):
-        if "etoneya" in url: return "EtoNeYa"
-        if "igareck" in url: return "igareck"
-        if "RKP" in url: return "RKP"
-        if "ilyacom41k" in url: return "FCH"
+        u = url.lower()
+        if "etoneya" in u: return "EtoNeYa"
+        if "igareck" in u: return "igareck"
+        if "rkp" in u: return "RKP"
+        if "ilyacom41k" in u: return "FCH"
         return "Other"
 
     def decode_display_name(self, raw_name, link, author):
+        # 1. ПРАВИЛО: EtoNeYa (без решетки в счетчике по просьбе)
         if author == "EtoNeYa":
             name = f"🏳️ White lists {self.etoneya_counter}"
             self.etoneya_counter += 1
-            return name, "Ваш котенок ❤️"
+            return name
 
+        # Проверка на Белый Список по SNI
+        is_white_sni = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
+
+        # 2. ПРАВИЛО: RKP
         if author == "RKP":
-            name = f"🛡️ RKP #{self.rkp_counter} 🛰️"
+            base_name = f"🛡️ RKP #{self.rkp_counter}"
             self.rkp_counter += 1
-            return name, "Ваш котенок ❤️"
+            return f"🏳️ {base_name}" if is_white_sni else base_name
 
+        # 3. Логика стран (Игорек, FCH и др.)
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
-        country_info = "Unknown"
         if found_flags:
             flag = found_flags[0]
-            country_name = FLAG_DB.get(flag, "")
-            country_info = f"{flag} {country_name}" if country_name else f"{flag} Location"
+            country = FLAG_DB.get(flag, "Location")
+            # Белый флаг СЗАДИ флага страны
+            return f"{flag} {country} 🏳️" if is_white_sni else f"{flag} {country}"
+        
+        return "🌐 Unknown 🏳️" if is_white_sni else "🌐 Unknown"
 
-        is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
-        final_name = f"🏳️ {country_info}" if is_white else country_info
-        return final_name, "Ваш котенок ❤️"
+    def fetch_and_parse(self, url):
+        try:
+            res = requests.get(url, timeout=15)
+            if res.status_code != 200: return
+            author = self.get_author_label(url)
+            # Ищем все ссылки протоколов
+            links = re.findall(r'(?:vless|vmess|ss|trojan)://[^\s<]+', res.text)
+            for l in links:
+                parts = l.split("#", 1)
+                clean_link = parts[0]
+                raw_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
+                self.buckets[author].append({"link": clean_link, "name": raw_name})
+        except:
+            pass
 
     def run(self):
-        for url in self.sources:
-            author = self.get_author_label(url)
-            try:
-                resp = requests.get(url, timeout=10)
-                if resp.status_code != 200: continue
-                configs = resp.text.splitlines()
-                for conf in configs:
-                    if not conf.strip(): continue
-                    parts = conf.split('#', 1)
-                    base_conf = parts[0]
-                    raw_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
-                    new_name, suffix = self.decode_display_name(raw_name, base_conf, author)
-                    full_name = f"{new_name} | {author} | {suffix}"
-                    final_conf = f"{base_conf}#{urllib.parse.quote(full_name)}"
-                    self.buckets[author].append(final_conf)
-            except: continue
-
-        all_configs = []
-        for key in ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]:
-            all_configs.extend(self.buckets[key])
-            
-        final_content = "\n".join(all_configs)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 Запуск UltraParser...")
         
-        # СОХРАНЯЕМ ОБЫЧНЫЙ ФАЙЛ (subscription.txt)
-        with open("subscription.txt", "w") as f:
-            f.write(final_content)
+        # Многопоточный сбор данных
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+            ex.map(self.fetch_and_parse, self.sources)
+
+        final_list = []
+        auth_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
+
+        # ЛОГИКА БУТЕРБРОДА: по 10 штук от каждого автора по кругу 🥪
+        while any(self.buckets[a] for a in auth_order):
+            for a in auth_order:
+                chunk = self.buckets[a][:10]
+                self.buckets[a] = self.buckets[a][10:]
+                
+                for item in chunk:
+                    display = self.decode_display_name(item["name"], item["link"], a)
+                    # Финальная строка с автором и подписью
+                    final_conf = f"{item['link']}#{display} | {a} | Ваш котенок ❤️"
+                    final_list.append(final_conf)
+
+        if final_list:
+            content = "\n".join(final_list)
             
-        # СОХРАНЯЕМ B64 ФАЙЛ (subscription_b64.txt)
-        b64_output = base64.b64encode(final_content.encode()).decode()
-        with open("subscription_b64.txt", "w") as f:
-            f.write(b64_output)
-            
-        print(f"Готово! Создано 2 файла. Котик доволен! :3")
+            # 1. Сохраняем обычный текстовый файл
+            with open("subscription.txt", "w", encoding="utf-8") as f:
+                f.write(content)
+                
+            # 2. Сохраняем Base64 для NekoBox
+            b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            with open("subscription_b64.txt", "w", encoding="utf-8") as f:
+                f.write(b64_content)
+                
+            print(f"✅ Успех! Обработано {len(final_list)} конфигов. Котик в коробке доволен! :3")
+        else:
+            print("⚠️ Конфиги не найдены. Проверь источники!")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)

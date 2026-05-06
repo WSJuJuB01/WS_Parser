@@ -73,11 +73,13 @@ class UltraParser:
         if found_flags:
             flag = found_flags[0]
             country = FLAG_DB.get(flag, "Location")
-            # Белый флаг СЗАДИ флага страны
-            return f"{flag} {country} 🏳️" if is_white_sni else f"{flag} {country}"
-        
-        return "🌐 Unknown 🏳️" if is_white_sni else "🌐 Unknown"
-
+            res = f"{flag} {country}"
+        # Если флага нет, но в названии есть "Anycast" (без учета регистра)
+        elif "anycast" in raw_name.lower():
+            res = "🌐 Anycast"
+        else:
+            res = "🌐 Unknown"
+    
     def fetch_and_parse(self, url):
         try:
             res = requests.get(url, timeout=15)

@@ -53,7 +53,7 @@ class UltraParser:
         return "Other"
 
     def decode_display_name(self, raw_name, link, author):
-        # 1. ПРАВИЛО: EtoNeYa (без решетки в счетчике по просьбе)
+        # 1. ПРАВИЛО: EtoNeYa
         if author == "EtoNeYa":
             name = f"🏳️ White lists {self.etoneya_counter}"
             self.etoneya_counter += 1
@@ -68,70 +68,59 @@ class UltraParser:
             self.rkp_counter += 1
             return f"🏳️ {base_name}" if is_white_sni else base_name
 
-        # 3. Логика стран (Игорек, FCH и др.)
+        # 3. Логика стран и Anycast
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
+        
         if found_flags:
             flag = found_flags[0]
             country = FLAG_DB.get(flag, "Location")
             res = f"{flag} {country}"
-        # Если флага нет, но в названии есть "Anycast" (без учета регистра)
         elif "anycast" in raw_name.lower():
             res = "🌐 Anycast"
         else:
             res = "🌐 Unknown"
-    
+
+        # Белый флаг СЗАДИ
+        return f"{res} 🏳️" if is_white_sni else res
+
     def fetch_and_parse(self, url):
         try:
             res = requests.get(url, timeout=15)
             if res.status_code != 200: return
             author = self.get_author_label(url)
-            # Ищем все ссылки протоколов
             links = re.findall(r'(?:vless|vmess|ss|trojan)://[^\s<]+', res.text)
             for l in links:
                 parts = l.split("#", 1)
                 clean_link = parts[0]
                 raw_name = urllib.parse.unquote(parts[1]) if len(parts) > 1 else ""
                 self.buckets[author].append({"link": clean_link, "name": raw_name})
-        except:
-            pass
+        except: pass
 
     def run(self):
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 Запуск UltraParser...")
-        
-        # Многопоточный сбор данных
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 Сбор конфигов...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
             ex.map(self.fetch_and_parse, self.sources)
 
         final_list = []
         auth_order = ["EtoNeYa", "RKP", "igareck", "FCH", "Other"]
 
-        # ЛОГИКА БУТЕРБРОДА: по 10 штук от каждого автора по кругу 🥪
+        # ЛОГИКА БУТЕРБРОДА 🥪
         while any(self.buckets[a] for a in auth_order):
             for a in auth_order:
                 chunk = self.buckets[a][:10]
                 self.buckets[a] = self.buckets[a][10:]
-                
                 for item in chunk:
                     display = self.decode_display_name(item["name"], item["link"], a)
-                    # Финальная строка с автором и подписью
-                    final_conf = f"{item['link']}#{display} | {a} | Ваш котенок ❤️"
-                    final_list.append(final_conf)
+                    final_list.append(f"{item['link']}#{display} | {a} | Ваш котенок ❤️")
 
         if final_list:
             content = "\n".join(final_list)
-            
-            # 1. Сохраняем обычный текстовый файл
             with open("subscription.txt", "w", encoding="utf-8") as f:
                 f.write(content)
-                
-            # 2. Сохраняем Base64 для NekoBox
-            b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            b64_content = base64.b64encode(content.encode()).decode()
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(b64_content)
-                
-            print(f"✅ Успех! Обработано {len(final_list)} конфигов. Котик в коробке доволен! :3")
-        else:
-            print("⚠️ Конфиги не найдены. Проверь источники!")
+            print(f"✅ Готово! Собрано {len(final_list)} конфигов.")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)

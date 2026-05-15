@@ -21,7 +21,7 @@ SOURCES = {
     ]
 }
 
-# --- ПОЛНЫЙ WHITE SNI LIST (СОХРАНЕН) ---
+# --- WHITE SNI LIST ---
 WHITE_SNI_LIST = [
     "gosuslugi.ru", "gu-st.ru", "gov.ru", "nalog.ru", "mos.ru", "pfr.ru", "zakupki.gov.ru", "kremlin.ru", "customs.ru", "fssp.gov.ru", "mvd.ru", "mil.ru", "nalog.gov.ru", "lkfl2.nalog.ru", "fss.ru", "moex.com", "cbr.ru", "fsvps.gov.ru", "minfin.gov.ru",
     "yandex.ru", "ya.ru", "dzen.ru", "yandex.net", "zen.yandex.ru", "yastatic.net", "smartcaptcha.yandexcloud.net", "yandexcloud.net", "yandex.maps", "static-maps.yandex.ru", "yandex-team.ru", "yandex.kz", "yandex.by", "alice.yandex.net", "disk.yandex.ru",
@@ -57,13 +57,13 @@ class UltraParser:
         self.counters = {auth: 1 for auth in sources_dict.keys()}
 
     def decode_display_name(self, raw_name, link, author):
-        # СПЕЦИАЛЬНЫЙ ФОРМАТ ДЛЯ EtoNeYa
+        # ЖЕСТКАЯ ПРОВЕРКА: Если автор EtoNeYa, забиваем на флаги и страны
         if author == "EtoNeYa":
             name = f"🏳 White lists #{self.counters[author]} | EtoNeYa | Ваш котенок ❤"
             self.counters[author] += 1
             return name
 
-        # СТАНДАРТНЫЙ ФОРМАТ ДЛЯ ОСТАЛЬНЫХ
+        # ДЛЯ ОСТАЛЬНЫХ ОПРЕДЕЛЯЕМ СТРАНУ
         is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
         white_tag = " 🏳️ White list" if is_white else ""
         
@@ -129,7 +129,7 @@ class UltraParser:
             b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(b64_content)
-            print(f"✅ Готово! Котенок собрал {global_count} конфигов.")
+            print(f"✅ Готово! Котенок все исправил.")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)

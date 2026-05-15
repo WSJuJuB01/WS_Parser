@@ -21,7 +21,7 @@ SOURCES = {
     ]
 }
 
-# --- ПОЛНЫЙ WHITE SNI LIST ---
+# --- ПОЛНЫЙ WHITE SNI LIST (СОХРАНЕН) ---
 WHITE_SNI_LIST = [
     "gosuslugi.ru", "gu-st.ru", "gov.ru", "nalog.ru", "mos.ru", "pfr.ru", "zakupki.gov.ru", "kremlin.ru", "customs.ru", "fssp.gov.ru", "mvd.ru", "mil.ru", "nalog.gov.ru", "lkfl2.nalog.ru", "fss.ru", "moex.com", "cbr.ru", "fsvps.gov.ru", "minfin.gov.ru",
     "yandex.ru", "ya.ru", "dzen.ru", "yandex.net", "zen.yandex.ru", "yastatic.net", "smartcaptcha.yandexcloud.net", "yandexcloud.net", "yandex.maps", "static-maps.yandex.ru", "yandex-team.ru", "yandex.kz", "yandex.by", "alice.yandex.net", "disk.yandex.ru",
@@ -34,7 +34,7 @@ WHITE_SNI_LIST = [
     "cian.ru", "rbc.ru", "tass.ru", "gismeteo.ru", "rambler.ru", "consultant.ru", "garant.ru", "lenta.ru", "rg.ru", "ria.ru", "iz.ru", "kommersant.ru", "bfm.ru", "mk.ru", "vedomosti.ru", "interfax.ru"
 ]
 
-# --- FLAG DATABASE ---
+# --- FLAG DATABASE (ДОБАВЛЕНА ЕВРОПА 🇪🇺) ---
 FLAG_DB = {
     "🇪🇺": "Europe", "🇦🇫": "Afghanistan", "🇦🇱": "Albania", "🇩🇿": "Algeria", "🇦🇸": "American Samoa", "🇦🇩": "Andorra", "🇦🇴": "Angola", "🇦🇮": "Anguilla", "🇦🇶": "Antarctica", "🇦🇬": "Antigua", "🇦🇷": "Argentina", "🇦🇲": "Armenia", "🇦🇼": "Aruba", "🇦🇺": "Australia", "🇦🇹": "Austria", "🇦🇿": "Azerbaijan", "🇧🇸": "Bahamas", "🇧🇭": "Bahrain", "🇧🇩": "Bangladesh", "🇧🇧": "Barbados",
     "🇧🇾": "Belarus", "🇧🇪": "Belgium", "🇧🇿": "Belize", "🇧🇳": "Benin", "🇧🇲": "Bermuda", "🇧🇹": "Bhutan", "🇧🇴": "Bolivia", "🇧🇦": "Bosnia", "🇧🇼": "Botswana", "🇧🇷": "Brazil", "🇻🇬": "British Virgin Islands", "🇧🇳": "Brunei", "🇧🇬": "Bulgaria", "🇧🇫": "Burkina Faso", "🇧🇮": "Burundi", "🇰🇭": "Cambodia", "🇨🇲": "Cameroon", "🇨🇦": "Canada", "🇨🇻": "Cape Verde", "🇰🇾": "Cayman Islands",
@@ -46,7 +46,7 @@ FLAG_DB = {
     "🇳🇿": "New Zealand", "🇳🇮": "Nicaragua", "🇳🇪": "Niger", "🇳🇬": "Nigeria", "🇳🇺": "Niue", "🇳🇫": "Norfolk Island", "🇲🇵": "Northern Mariana Islands", "🇰🇵": "North Korea", "🇳🇴": "Norway", "🇴🇲": "Oman", "🇵🇰": "Pakistan", "🇵🇼": "Palau", "🇵🇸": "Palestine", "🇵🇦": "Panama", "🇵🇬": "Papua New Guinea", "🇵🇾": "Paraguay", "🇵🇪": "Peru", "🇵🇭": "Philippines", "🇵🇳": "Pitcairn Islands",
     "🇵🇱": "Poland", "🇵🇹": "Portugal", "🇵🇷": "Puerto Rico", "🇶🇦": "Qatar", "🇷🇪": "Reunion", "🇷🇴": "Romania", "🇷🇺": "Russia", "🇷🇼": "Rwanda", "🇼🇸": "Samoa", "🇸🇲": "San Marino", "🇸🇹": "Sao Tome", "🇸🇦": "Saudi Arabia", "🇸🇳": "Senegal", "🇷🇸": "Serbia", "🇸🇨": "Seychelles", "🇸🇱": "Sierra Leone", "🇸🇬": "Singapore", "🇸🇽": "Sint Maarten", "🇸🇰": "Slovakia", "🇸🇮": "Slovenia",
     "🇸🇧": "Solomon Islands", "🇸🇴": "Somalia", "🇿🇦": "South Africa", "🇰🇷": "South Korea", "🇸🇸": "South Sudan", "🇪🇸": "Spain", "🇱🇰": "Sri Lanka", "🇸🇩": "Sudan", "🇸🇷": "Suriname", "🇸🇿": "Swaziland", "🇸🇪": "Sweden", "🇨🇭": "Switzerland", "🇸🇾": "Syria", "🇹🇼": "Taiwan", "🇹🇯": "Tajikistan", "🇹🇿": "Tanzania", "🇹🇭": "Thailand", "🇹🇱": "Timor-Leste", "🇹🇬": "Togo",
-    "🇹🇰": "Tokelau", "🇹🇴": "Tonga", "🇹🇹": "Trinidad", "🇹🇳": "Tunisia", "🇹🇷": "Turkey", "🇹🇲": "Turkmenistan", "🇹🇨": "Turks and Caicos", "🇹🇻": "Tuvalu", "🇺🇬": "Uganda", "🇺🇦": "Ukraine", "🇦🇪": "UAE", "🇬🇧": "UK", "🇺🇸": "USA", "🇺🇾": "Uruguay", "🇺🇿": "Uzbekistan", "🇻🇺": "Vanuatu", "🇻🇦": "Vatican City", "🇻🇪": "Venezuela", "🇻🇳": "Vietnam", "🇼🇫": "Wallis and Futuna",
+    "🇹🇰": "Tokelau", "🇹🇴": "Tonga", "🇹🇹": "Trinidad", "🇹🇳": "Tunisia", "🇹🇷": "Turkey", "🇹🇲": "Turкmenistan", "🇹🇨": "Turks and Caicos", "🇹🇻": "Tuvalu", "🇺🇬": "Uganda", "🇺🇦": "Ukraine", "🇦🇪": "UAE", "🇬🇧": "UK", "🇺🇸": "USA", "🇺🇾": "Uruguay", "🇺🇿": "Uzbekistan", "🇻🇺": "Vanuatu", "🇻🇦": "Vatican City", "🇻🇪": "Venezuela", "🇻🇳": "Vietnam", "🇼🇫": "Wallis and Futuna",
     "🇪🇭": "Western Sahara", "🇾🇪": "Yemen", "🇿🇲": "Zambia", "🇿🇼": "Zimbabwe"
 }
 
@@ -57,11 +57,16 @@ class UltraParser:
         self.counters = {auth: 1 for auth in sources_dict.keys()}
 
     def decode_display_name(self, raw_name, link, author):
-        # 1. Проверка SNI на White List
+        # СПЕЦИАЛЬНЫЙ ФОРМАТ ДЛЯ EtoNeYa
+        if author == "EtoNeYa":
+            name = f"🏳 White lists #{self.counters[author]} | EtoNeYa | Ваш котенок ❤"
+            self.counters[author] += 1
+            return name
+
+        # СТАНДАРТНЫЙ ФОРМАТ ДЛЯ ОСТАЛЬНЫХ
         is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
         white_tag = " 🏳️ White list" if is_white else ""
         
-        # 2. Определение страны по флагу
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
         if found_flags:
             flag = found_flags[0]
@@ -72,8 +77,7 @@ class UltraParser:
         else:
             label = "🌐 Unknown"
 
-        # 3. Финальная сборка названия с подписью котенка
-        name = f"{label} | {author} #{self.counters[author]}{white_tag}"
+        name = f"{label} | {author} #{self.counters[author]}{white_tag} | Ваш котенок ❤"
         self.counters[author] += 1
         return name
 
@@ -96,7 +100,7 @@ class UltraParser:
                 print(f"❌ Error {author}: {e}")
 
     def run(self):
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🥪 Сборка бутерброда от котенка...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🥪 Сборка идеальной подписки...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
             futures = [ex.submit(self.fetch_and_parse, auth, urls) for auth, urls in self.sources_dict.items()]
             concurrent.futures.wait(futures)
@@ -111,8 +115,7 @@ class UltraParser:
                 self.buckets[a] = self.buckets[a][10:]
                 for item in chunk:
                     display = self.decode_display_name(item["name"], item["link"], a)
-                    # Финальная подпись в ссылке
-                    safe_display = urllib.parse.quote(f"{display} | Ваш котенок ❤")
+                    safe_display = urllib.parse.quote(display)
                     final_list.append(f"{item['link']}#{safe_display}")
                     global_count += 1
                     

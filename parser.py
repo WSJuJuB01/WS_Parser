@@ -6,7 +6,7 @@ import concurrent.futures
 from datetime import datetime
 
 # ==========================================
-# ТВОИ SOURCES 🛰️ (Добавил новые протоколы в проверку)
+# ТВОИ SOURCES 🛰️
 # ==========================================
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
@@ -14,7 +14,7 @@ SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS-all_RUS.txt",
     "https://raw.githubusercontent.com/RKPChannel/RKP_bypass_configs/refs/heads/main/configs/url_work.txt",
     "https://raw.githubusercontent.com/ilyacom41k/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt",
-    "https://etoneya.a9fm.site/whitelist"
+    "https://etoneya.vercel.app/whitelist"
 ]
 
 FLAG_DB = {
@@ -77,14 +77,12 @@ class UltraParser:
             if res.status_code != 200: return
             
             content = res.text
-            # Проверка на Base64 (если весь файл зашифрован)
             if not any(proto in content for proto in ["vless://", "ss://", "vmess://", "trojan://"]):
                 try:
                     content = base64.b64decode(content).decode('utf-8')
                 except: pass
 
             author = self.get_author_label(url)
-            # Жадная регулярка: забирает всё до конца строки, включая новые протоколы
             links = re.findall(r'(?:vless|vmess|ss|trojan|tuic|hysteria2)://[^\r\n\t\s]+', content)
             
             for l in links:
@@ -100,10 +98,10 @@ class UltraParser:
                 if clean_link:
                     self.buckets[author].append({"link": clean_link, "name": raw_name})
         except Exception as e:
-            print(f"❌ Ошибка на {url}: {e}")
+            print(f"❌ Error at {url}: {e}")
 
     def run(self):
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 Поиск потерянных конфигов Игорька...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 Running Parser...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
             ex.map(self.fetch_and_parse, self.sources)
 
@@ -127,12 +125,10 @@ class UltraParser:
             b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(b64_content)
-            print(f"✅ Успех! Собрано: {len(final_list)} конфигов.")
+            print(f"✅ Success! Found: {len(final_list)}")
         else:
-            print("🛑 Пусто! Проверь источники вручную.")
+            print("🛑 Empty results!")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)
-    parser.run()
-)
     parser.run()

@@ -34,7 +34,7 @@ WHITE_SNI_LIST = [
     "cian.ru", "rbc.ru", "tass.ru", "gismeteo.ru", "rambler.ru", "consultant.ru", "garant.ru", "lenta.ru", "rg.ru", "ria.ru", "iz.ru", "kommersant.ru", "bfm.ru", "mk.ru", "vedomosti.ru", "interfax.ru"
 ]
 
-# --- FLAG DATABASE (ДОБАВЛЕН ЕВРОСОЮЗ 🇪🇺) ---
+# --- FLAG DATABASE ---
 FLAG_DB = {
     "🇪🇺": "Europe", "🇦🇫": "Afghanistan", "🇦🇱": "Albania", "🇩🇿": "Algeria", "🇦🇸": "American Samoa", "🇦🇩": "Andorra", "🇦🇴": "Angola", "🇦🇮": "Anguilla", "🇦🇶": "Antarctica", "🇦🇬": "Antigua", "🇦🇷": "Argentina", "🇦🇲": "Armenia", "🇦🇼": "Aruba", "🇦🇺": "Australia", "🇦🇹": "Austria", "🇦🇿": "Azerbaijan", "🇧🇸": "Bahamas", "🇧🇭": "Bahrain", "🇧🇩": "Bangladesh", "🇧🇧": "Barbados",
     "🇧🇾": "Belarus", "🇧🇪": "Belgium", "🇧🇿": "Belize", "🇧🇳": "Benin", "🇧🇲": "Bermuda", "🇧🇹": "Bhutan", "🇧🇴": "Bolivia", "🇧🇦": "Bosnia", "🇧🇼": "Botswana", "🇧🇷": "Brazil", "🇻🇬": "British Virgin Islands", "🇧🇳": "Brunei", "🇧🇬": "Bulgaria", "🇧🇫": "Burkina Faso", "🇧🇮": "Burundi", "🇰🇭": "Cambodia", "🇨🇲": "Cameroon", "🇨🇦": "Canada", "🇨🇻": "Cape Verde", "🇰🇾": "Cayman Islands",
@@ -57,14 +57,11 @@ class UltraParser:
         self.counters = {auth: 1 for auth in sources_dict.keys()}
 
     def decode_display_name(self, raw_name, link, author):
-        if author == "EtoNeYa":
-            name = f"🏳️ White lists {self.counters[author]}"
-            self.counters[author] += 1
-            return name
-
+        # 1. Проверка SNI на White List
         is_white = any(sni in (link + raw_name).lower() for sni in WHITE_SNI_LIST)
         white_tag = " 🏳️ White list" if is_white else ""
         
+        # 2. Определение страны по флагу
         found_flags = re.findall(r'[\U0001F1E6-\U0001F1FF]{2}', raw_name)
         if found_flags:
             flag = found_flags[0]
@@ -75,6 +72,7 @@ class UltraParser:
         else:
             label = "🌐 Unknown"
 
+        # 3. Финальная сборка названия с подписью котенка
         name = f"{label} | {author} #{self.counters[author]}{white_tag}"
         self.counters[author] += 1
         return name
@@ -98,7 +96,7 @@ class UltraParser:
                 print(f"❌ Error {author}: {e}")
 
     def run(self):
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🥪 Добавляем Европу в бутерброд...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🥪 Сборка бутерброда от котенка...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
             futures = [ex.submit(self.fetch_and_parse, auth, urls) for auth, urls in self.sources_dict.items()]
             concurrent.futures.wait(futures)
@@ -113,7 +111,8 @@ class UltraParser:
                 self.buckets[a] = self.buckets[a][10:]
                 for item in chunk:
                     display = self.decode_display_name(item["name"], item["link"], a)
-                    safe_display = urllib.parse.quote(f"{display} | WSVPN 🐈‍⬛")
+                    # Финальная подпись в ссылке
+                    safe_display = urllib.parse.quote(f"{display} | Ваш котенок ❤")
                     final_list.append(f"{item['link']}#{safe_display}")
                     global_count += 1
                     
@@ -127,7 +126,7 @@ class UltraParser:
             b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
             with open("subscription_b64.txt", "w", encoding="utf-8") as f:
                 f.write(b64_content)
-            print(f"✅ Готово! Найдено {global_count} конфигов.")
+            print(f"✅ Готово! Котенок собрал {global_count} конфигов.")
 
 if __name__ == "__main__":
     parser = UltraParser(SOURCES)

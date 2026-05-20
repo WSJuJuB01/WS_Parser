@@ -1,0 +1,32 @@
+name: Auto Parse Subscription
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Скрипт будет автоматически стартовать каждый час
+  workflow_dispatch: # Оставляем кнопку, чтобы можно было пнуть вручную
+
+jobs:
+  parse-and-save:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run script
+        run: python parse_vless.py
+
+      - name: Commit and Push sub.txt
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sub.txt
+          git commit -m "Hourly subscription update" || exit 0
+          git push

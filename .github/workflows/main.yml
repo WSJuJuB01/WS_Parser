@@ -5,11 +5,11 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 * * * *' # Обновление каждый час
-  workflow_dispatch: # Кнопка для ручного запуска
+    - cron: '0 * * * *' # Автоматическое обновление каждый час
+  workflow_dispatch: # Кнопка для ручного запуска в Actions
 
 permissions:
-  contents: write # КРИТИЧЕСКИ ВАЖНО: Разрешение на запись файлов
+  contents: write # Разрешение боту на запись и пуш файлов в репозиторий
 
 jobs:
   build:
@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Скачиваем всю историю, чтобы rebase работал корректно
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,13 +36,17 @@ jobs:
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Добавляем файлы, которые изменил скрипт
+          # Добавляем обновленные файлы
           git add subscription.txt subscription_b64.txt
           
-          # Делаем коммит. Если изменений нет, скрипт просто пойдет дальше
-          git commit -m "🔄 Обновление подписок: $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+          # Делаем коммит. Если изменений в файлах нет, шаг не упадет
+          git commit -m "🔄 Обновление подписок: $(date +'%Y-%m-%d %H:%M')" || exit 0
           
-          # Пушим изменения обратно в основную ветку
+          # Сначала подтягиваем изменения из облака, если ветка main ушла вперед, 
+          # и аккуратно дописываем наш коммит поверх них
+          git pull --rebase origin main
+          
+          # Пушим финальный результат без конфликтов
           git push origin main
